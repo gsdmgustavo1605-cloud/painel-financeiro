@@ -1,388 +1,7 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Finanças - Gustavo & Isaias</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    :root {
-      --primary: #3B4D3B;
-      --primary-dark: #2A382A;
-      --accent-blue: #1E3A5F;
-      --bg: #F4F1EA;
-      --card: #FAF9F6;
-      --border: #E2DDD2;
-      --text: #1F2933;
-      --text-muted: #5C6670;
-      --danger: #B91C1C;
-      --success: #2E6F40;
-    }
-    * { box-sizing: border-box; font-family: 'Inter', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
-    body { background-color: var(--bg); color: var(--text); margin: 0; padding: 8px; display: flex; justify-content: center; }
-    
-    /* Login Mobile First */
-    #tela-login { width: 100%; max-width: 380px; margin: 40px auto; background: var(--card); padding: 20px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 8px 24px rgba(30, 58, 95, 0.08); text-align: center; }
-    input, select, button { width: 100%; padding: 12px; margin: 6px 0; border-radius: 10px; border: 1px solid var(--border); font-size: 15px; background-color: #FFFFFF; color: var(--text); }
-    input:focus, select:focus { outline: none; border-color: var(--accent-blue); box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.12); }
-    button { background-color: var(--primary); color: #FAF9F6; border: none; font-weight: 600; cursor: pointer; min-height: 48px; }
-    button:active { filter: brightness(0.95); }
-    
-    /* Painel Mobile First */
-    #painel-principal { display: none; width: 100%; max-width: 480px; margin: 0 auto; padding-bottom: 70px; }
-    .header { display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, var(--primary) 0%, var(--accent-blue) 100%); color: #FAF9F6; padding: 14px 16px; border-radius: 14px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(42, 56, 42, 0.12); gap: 8px; }
-    .header small { color: #DCD7C9; font-size: 11px; }
-    .header input[type="month"] { background: rgba(255, 255, 255, 0.15); color: #FFFFFF; border: 1px solid rgba(255, 255, 255, 0.3); width: auto; padding: 6px 10px; font-size: 12px; }
-    .header input[type="month"]::-webkit-calendar-picker-indicator { filter: invert(1); }
-    .btn-sair { background: rgba(255, 255, 255, 0.15) !important; border: 1px solid rgba(255, 255, 255, 0.3) !important; width: auto; margin: 0; padding: 6px 10px; font-size: 11px; }
-    
-    .grid-resumo { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 12px; }
-    .card { background: var(--card); padding: 14px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.03); width: 100%; margin-bottom: 10px; }
-    .card-destaque-azul { border-left: 4px solid var(--accent-blue); }
-    .card-destaque-verde { border-left: 4px solid var(--primary); }
-    .card-destaque-bege { border-left: 4px solid #A89F91; }
-    .card h3 { margin: 0 0 4px 0; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); }
-    .card .valor { font-size: 20px; font-weight: 700; }
-    
-    /* Navegação Inferior Otimizada */
-    .tabs { position: fixed; bottom: 0; left: 0; width: 100%; background: #FAF9F6; border-top: 1px solid var(--border); display: flex; justify-content: space-between; overflow-x: auto; padding: 6px 4px; z-index: 1000; box-shadow: 0 -4px 12px rgba(0,0,0,0.05); -webkit-overflow-scrolling: touch; gap: 4px; }
-    .tabs::-webkit-scrollbar { height: 3px; background: transparent; }
-    .tabs::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-    .tab-btn { background: transparent; color: var(--text-muted); border: none; padding: 4px 6px; margin: 0; font-size: 9px; font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 2px; flex: 1 1 auto; min-width: 44px; min-height: auto; white-space: nowrap; }
-    .tab-btn:hover { background: transparent; color: var(--text); transform: none; }
-    .tab-btn.active { color: var(--accent-blue); background: transparent; }
-    
-    .secao { display: none; animation: fadeIn 0.2s ease; width: 100%; }
-    .secao.active { display: block; }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-    .table-container { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    table { width: 100%; border-collapse: collapse; min-width: 320px; }
-    th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--border); font-size: 12px; }
-    th { color: var(--accent-blue); font-weight: 700; background-color: #F0EDE5; font-size: 10px; text-transform: uppercase; }
-    
-    .badge-compartilhado { background: #E3ECF5; color: var(--accent-blue); border: 1px solid #B8CCE4; padding: 2px 6px; border-radius: 12px; font-size: 9px; font-weight: 600; display: inline-block; margin-top: 2px; }
-    .progress-bg { background: #E5E0D5; height: 6px; border-radius: 4px; overflow: hidden; margin-top: 4px; width: 100%; }
-    .progress-fill { height: 100%; background: var(--primary); border-radius: 4px; }
-    
-    #toast { visibility: hidden; min-width: 200px; background-color: var(--accent-blue); color: #fff; text-align: center; border-radius: 8px; padding: 10px 14px; position: fixed; z-index: 2000; left: 50%; transform: translateX(-50%); bottom: 70px; font-size: 12px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.2); opacity: 0; transition: opacity 0.3s, bottom 0.3s; }
-    #toast.show { visibility: visible; opacity: 1; bottom: 80px; }
-  </style>
-</head>
-<body>
-
-  <div id="toast">Ação realizada!</div>
-
-  <!-- TELA DE LOGIN -->
-  <div id="tela-login">
-    <div style="width: 48px; height: 48px; background: var(--primary); color: #FAF9F6; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin: 0 auto 10px auto;">🏛️</div>
-    <h2 style="margin-bottom:2px; font-size: 18px; color: var(--accent-blue);">Gestão Patrimonial</h2>
-    <p style="color:var(--text-muted); font-size: 12px; margin-top:0; margin-bottom: 14px;">Gustavo & Isaias</p>
-
-    <div style="display: flex; gap: 4px; margin-bottom: 10px; background: #EAE6DC; padding: 4px; border-radius: 8px;">
-      <button id="btn-tab-login" onclick="window.alternarModoLogin('login')" style="background: var(--accent-blue); color: #fff; margin:0; font-size: 11px; padding: 6px; min-height: 32px;">Entrar</button>
-      <button id="btn-tab-cad" onclick="window.alternarModoLogin('cadastro')" style="background: transparent; color: var(--text-muted); margin:0; font-size: 11px; padding: 6px; min-height: 32px; border:none; box-shadow:none;">Criar Conta</button>
-    </div>
-
-    <!-- FORMULÁRIO DE LOGIN -->
-    <div id="form-login-div">
-      <input type="email" id="login-email" placeholder="E-mail">
-      <input type="password" id="login-senha" placeholder="Senha">
-      <button onclick="window.entrar()" style="background: var(--accent-blue); margin-top: 8px;">Entrar no Painel</button>
-    </div>
-
-    <!-- FORMULÁRIO DE CADASTRO -->
-    <div id="form-cadastro-div" style="display:none;">
-      <input type="text" id="cad-nome" placeholder="Seu Nome">
-      <input type="email" id="cad-email" placeholder="Seu E-mail">
-      <input type="password" id="cad-senha" placeholder="Sua Senha">
-      <button onclick="window.cadastrarNovoUsuario()" style="background: var(--primary); margin-top: 8px;">Cadastrar Novo Usuário</button>
-    </div>
-
-    <p id="login-erro" style="color: var(--danger); font-size: 12px; font-weight: 600; margin-top: 8px;"></p>
-  </div>
-
-  <!-- PAINEL PRINCIPAL -->
-  <div id="painel-principal">
-    <div class="header">
-      <div>
-        <h2 style="margin:0; font-size: 16px;">Olá, <span id="nome-usuario"></span>! 👋</h2>
-        <small>🟡 <span id="status-sync">Conectando Nuvem...</span></small>
-      </div>
-      <div style="display:flex; gap:6px; align-items:center;">
-        <input type="month" id="filtro-mes" onchange="window.renderizarPainel()">
-        <button onclick="window.sair()" class="btn-sair">Sair</button>
-      </div>
-    </div>
-
-    <!-- RESUMO -->
-    <div class="grid-resumo">
-      <div class="card card-destaque-verde" style="display:flex; justify-content:space-between; align-items:center; padding: 12px 14px;">
-        <div>
-          <h3>💰 Receita Prevista</h3>
-          <div class="valor" style="color: var(--primary); font-size: 18px;" id="resumo-receita">R$ 0,00</div>
-        </div>
-        <button onclick="window.mudarAba('aba-receita', document.querySelectorAll('.tab-btn')[2])" style="width: auto; padding: 6px 10px; font-size: 11px; min-height: auto; margin:0;">Editar</button>
-      </div>
-      <div class="card card-destaque-bege">
-        <h3>💸 Despesas do Mês</h3>
-        <div class="valor" style="color: var(--danger);" id="resumo-despesa">R$ 0,00</div>
-      </div>
-      <div class="card card-destaque-azul">
-        <h3>⚖️ Saldo Disponível</h3>
-        <div class="valor" id="resumo-saldo">R$ 0,00</div>
-      </div>
-    </div>
-
-    <!-- ABAS (MENU INFERIOR) -->
-    <div class="tabs">
-      <button class="tab-btn active" onclick="window.mudarAba('aba-visao', this)">
-        <span style="font-size:15px;">📊</span>Análise
-      </button>
-      <button class="tab-btn" onclick="window.mudarAba('aba-gasto', this)">
-        <span style="font-size:15px;">💸</span>Gasto
-      </button>
-      <button class="tab-btn" onclick="window.mudarAba('aba-receita', this)">
-        <span style="font-size:15px;">💰</span>Receita
-      </button>
-      <button class="tab-btn" onclick="window.mudarAba('aba-historico', this)">
-        <span style="font-size:15px;">📋</span>Extrato
-      </button>
-      <button class="tab-btn" onclick="window.mudarAba('aba-parcelas', this)">
-        <span style="font-size:15px;">🗓️</span>Parcelas
-      </button>
-      <button class="tab-btn" onclick="window.mudarAba('aba-cartoes', this)">
-        <span style="font-size:15px;">💳</span>Cartões
-      </button>
-      <button class="tab-btn" onclick="window.mudarAba('aba-metas', this)">
-        <span style="font-size:15px;">🎯</span>Metas
-      </button>
-    </div>
-
-    <!-- ABA 1: VISÃO GERAL -->
-    <div id="aba-visao" class="secao active">
-      <div class="card card-destaque-azul" id="card-acerto-cartoes" style="display:none;">
-        <h3>🤝 Acerto de Cartões Compartilhados (Mês)</h3>
-        <div id="conteudo-acerto-cartoes" style="display:flex; flex-direction:column; gap:6px; margin-top:6px;"></div>
-      </div>
-
-      <div class="card">
-        <h3>📊 Evolução Mensal</h3>
-        <div style="height: 160px; position: relative;">
-          <canvas id="graficoComparativoMeses"></canvas>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>📈 Distribuição de Gastos</h3>
-        <div style="height: 150px; position: relative; width: 100%;">
-          <canvas id="graficoCategorias"></canvas>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>🎯 Metas por Categoria</h3>
-        <div id="lista-metas" style="max-height: 180px; overflow-y: auto;"></div>
-      </div>
-    </div>
-
-    <!-- ABA 2: LANÇAR GASTO -->
-    <div id="aba-gasto" class="secao">
-      <div class="card">
-        <h3>💸 Novo Gasto</h3>
-        <input type="text" id="desp-desc" placeholder="Descrição (Ex: Mercado)">
-        <label style="font-size:11px; color:#5C6670;">Data da Compra:</label>
-        <input type="date" id="desp-data">
-        <label style="font-size:11px; color:#5C6670;">Categoria:</label>
-        <select id="desp-cat"></select>
-        <label style="font-size:11px; color:#5C6670;">Forma de Pagamento:</label>
-        <select id="desp-pagamento" onchange="window.verificarCartao()"></select>
-        <input type="number" id="desp-valor" placeholder="Valor Total (R$)" step="0.01">
-        <div id="box-parcelas" style="display:none;">
-          <label style="font-size:11px; color:#5C6670;">Parcelas:</label>
-          <input type="number" id="desp-parcelas" value="1" min="1" max="48">
-        </div>
-        <button onclick="window.registrarDespesa()" style="background:var(--accent-blue); margin-top:10px;">Salvar Lançamento</button>
-      </div>
-    </div>
-
-    <!-- ABA 3: LANÇAR RECEITA -->
-    <div id="aba-receita" class="secao">
-      <div class="card">
-        <h3>💰 Receita do Mês</h3>
-        <p style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">Defina o ganho para o mês selecionado.</p>
-        <input type="number" id="rec-valor" placeholder="Valor (R$)" step="0.01">
-        <button onclick="window.registrarReceita()" style="background:var(--primary); margin-top:10px;">Salvar Receita</button>
-      </div>
-    </div>
-
-    <!-- ABA 4: HISTÓRICO GERAL E EDIÇÃO -->
-    <div id="aba-historico" class="secao">
-      <div class="card">
-        <h3>📋 Extrato e Edição</h3>
-        <input type="text" id="filtro-busca" placeholder="🔍 Buscar gasto..." oninput="window.renderizarHistoricoGeral()" style="margin-bottom:8px; font-size:13px; padding:8px;">
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Data/Mês</th>
-                <th>Descrição</th>
-                <th>Valor</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody id="tabela-historico-geral"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- MODAL DE EDIÇÃO -->
-    <div id="modal-edicao" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:3000; align-items:center; justify-content:center; padding:12px;">
-      <div class="card" style="max-width:380px; width:100%; margin:auto;">
-        <h3 style="color: var(--accent-blue); margin-top:0;">✏️ Editar Despesa</h3>
-        <input type="hidden" id="edit-desp-id">
-        <label style="font-size:11px; color:#5C6670;">Descrição:</label>
-        <input type="text" id="edit-desp-desc">
-        <label style="font-size:11px; color:#5C6670;">Categoria:</label>
-        <select id="edit-desp-cat"></select>
-        <label style="font-size:11px; color:#5C6670;">Valor da Parcela (R$):</label>
-        <input type="number" id="edit-desp-valor" step="0.01">
-        
-        <div id="box-escopo-edicao" style="display:none; margin-top:6px;">
-          <label style="font-size:11px; color:var(--accent-blue); font-weight:700;">Aplicar alteração em:</label>
-          <select id="edit-desp-escopo">
-            <option value="atual">Somente esta parcela</option>
-            <option value="futuras">Desta parcela para frente</option>
-            <option value="todas">Todas as parcelas desta compra</option>
-          </select>
-        </div>
-
-        <div style="display:flex; gap:8px; margin-top:10px;">
-          <button onclick="window.salvarEdicaoDespesa()" style="background:var(--accent-blue); margin:0;">Salvar</button>
-          <button onclick="window.fecharModalEdicao()" style="background:#5C6670; margin:0;">Cancelar</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- MODAL DE EXCLUSÃO -->
-    <div id="modal-exclusao" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:3000; align-items:center; justify-content:center; padding:12px;">
-      <div class="card" style="max-width:380px; width:100%; margin:auto;">
-        <h3 style="color: var(--danger); margin-top:0;">🗑️ Excluir Lançamento</h3>
-        <p id="texto-confirm-exclusao" style="font-size:13px; color:var(--text); margin-bottom:10px;">Deseja realmente excluir?</p>
-        <input type="hidden" id="del-desp-id">
-        
-        <div id="box-escopo-exclusao" style="display:none; margin-bottom:10px;">
-          <label style="font-size:11px; color:var(--danger); font-weight:700;">Excluir quais parcelas?</label>
-          <select id="del-desp-escopo">
-            <option value="atual">Somente esta parcela</option>
-            <option value="futuras">Desta parcela para frente</option>
-            <option value="todas">Todas as parcelas desta compra</option>
-          </select>
-        </div>
-
-        <div style="display:flex; gap:8px; margin-top:10px;">
-          <button onclick="window.confirmarExclusaoDespesa()" style="background:var(--danger); margin:0;">Excluir</button>
-          <button onclick="window.fecharModalExclusao()" style="background:#5C6670; margin:0;">Cancelar</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ABA 5: PARCELAS -->
-    <div id="aba-parcelas" class="secao">
-      <div class="card">
-        <h3>🗓️ Parcelamentos Ativos</h3>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Mês</th>
-                <th>Descrição</th>
-                <th>Parc</th>
-                <th>Valor</th>
-              </tr>
-            </thead>
-            <tbody id="tabela-parcelas"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ABA 6: CARTÕES -->
-    <div id="aba-cartoes" class="secao">
-      <div class="card">
-        <h3 id="titulo-form-cartao">💳 Novo Cartão</h3>
-        <input type="hidden" id="cart-edit-idx" value="-1">
-        <input type="text" id="cart-nome" placeholder="Nome (Ex: Nubank)">
-        <select id="cart-titular">
-          <option value="Gustavo">Gustavo</option>
-          <option value="Isaias">Isaias</option>
-        </select>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-          <input type="number" id="cart-fechamento" placeholder="Fechamento (dia)" min="1" max="31">
-          <input type="number" id="cart-vencimento" placeholder="Vencimento (dia)" min="1" max="31">
-        </div>
-        <div style="display:flex; gap:6px; margin-top:6px;">
-          <button onclick="window.registrarCartao()" id="btn-salvar-cartao">Salvar Cartão</button>
-          <button onclick="window.cancelarEdicaoCartao()" id="btn-cancelar-cartao" style="display:none; background:#5C6670;">Cancelar</button>
-        </div>
-      </div>
-      <div class="card">
-        <h3>📋 Cartões Cadastrados</h3>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Cartão</th>
-                <th>Titular</th>
-                <th>Datas</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody id="tabela-cartoes-config"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ABA 7: METAS -->
-    <div id="aba-metas" class="secao">
-      <div class="card">
-        <h3 id="titulo-form-cat">🏷️ Nova Categoria</h3>
-        <input type="hidden" id="cat-edit-idx" value="-1">
-        <input type="text" id="cat-nome" placeholder="Nome (Ex: Alimentação)">
-        <input type="number" id="cat-meta" placeholder="Meta mensal (R$)" step="0.01">
-        <div style="display:flex; gap:6px; margin-top:6px;">
-          <button onclick="window.registrarCategoria()" id="btn-salvar-cat">Salvar Categoria</button>
-          <button onclick="window.cancelarEdicaoCategoria()" id="btn-cancelar-cat" style="display:none; background:#5C6670;">Cancelar</button>
-        </div>
-      </div>
-      <div class="card">
-        <h3>🎯 Categorias Cadastradas</h3>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Categoria</th>
-                <th>Meta</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody id="tabela-metas-config"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- FIREBASE COMPAT (Versão global infalível para GitHub Pages / Iframes) -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
+<!-- ... existing code ... -->
+  <!-- FIREBASE REST API CORE (Totalmente imune a bloqueios de iframes e CORS do GitHub Pages) -->
   <script>
-    const appId = 'financas-gustavo-isaias-nuvem-v2';
+    const appId = 'financas-gustavo-isaias-nuvem-v3';
     const hojeISO = new Date().toISOString().slice(0, 10);
     const mesAtualPadrao = hojeISO.slice(0, 7);
 
@@ -407,7 +26,7 @@
 
     let dbSalvoLocal = null;
     try {
-      const localStr = localStorage.getItem('painel_financeiro_gi_local_v2');
+      const localStr = localStorage.getItem('painel_financeiro_gi_local_v3');
       if (localStr) dbSalvoLocal = JSON.parse(localStr);
     } catch(e) {}
 
@@ -416,67 +35,82 @@
     let chartInstancia = null;
     let chartComparativoInstancia = null;
 
-    let firestoreDb = null;
-    let docCompartilhadoRef = null;
-
-    const MINHA_CONFIG_FIREBASE = {
-      apiKey: "AIzaSyBl58rxbyUegUs40ldV7Sff51jDPGjucQ",
-      authDomain: "painel-financeiro-c8281.firebaseapp.com",
-      projectId: "painel-financeiro-c8281",
-      storageBucket: "painel-financeiro-c8281.firebasestorage.app",
-      messagingSenderId: "354967674280",
-      appId: "1:354967674280:web:fdc171a0f066cd9e9b519d",
-      measurementId: "G-FWRNF8DW80"
+    const FIREBASE_CONFIG = {
+      projectId: "painel-financeiro-c8281"
     };
 
-    function inicializarNuvem() {
+    const firestoreRestUrl = `https://firestore.googleapis.com/v1/projects/${FIREBASE_CONFIG.projectId}/databases/(default)/documents/artifacts/${appId}/public/dados_gerais`;
+
+    async function inicializarNuvem() {
       const statusEl = document.getElementById('status-sync');
+      if (statusEl) statusEl.innerText = 'Conectando Nuvem...';
+
       try {
-        if (!firebase.apps.length) {
-          firebase.initializeApp(MINHA_CONFIG_FIREBASE);
+        const response = await fetch(firestoreRestUrl);
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.fields) {
+            db = deserializarFirestore(data.fields);
+            salvarBackupLocal();
+          } else {
+            await salvarNaNuvemDireto();
+          }
+          if (statusEl) statusEl.innerText = 'Sincronizado na Nuvem';
+          if (usuarioAtual) window.renderizarPainel();
+        } else if (response.status === 404) {
+          await salvarNaNuvemDireto();
+          if (statusEl) statusEl.innerText = 'Sincronizado na Nuvem';
+        } else {
+          throw new Error("Falha HTTP");
         }
-        const auth = firebase.auth();
-        firestoreDb = firebase.firestore();
-
-        auth.signInAnonymously().then(() => {
-          docCompartilhadoRef = firestoreDb.collection('artifacts').doc(appId).collection('public').doc('dados_gerais');
-          
-          docCompartilhadoRef.get().then((docSnap) => {
-            if (!docSnap.exists) {
-              docCompartilhadoRef.set(db);
-            } else {
-              db = docSnap.data();
-              salvarBackupLocal();
-            }
-
-            docCompartilhadoRef.onSnapshot((docSnapLive) => {
-              if (docSnapLive.exists) {
-                db = docSnapLive.data();
-                salvarBackupLocal();
-                if (statusEl) statusEl.innerText = 'Sincronizado na Nuvem';
-                if (usuarioAtual) {
-                  window.renderizarPainel();
-                }
-              }
-            }, (err) => {
-              console.warn("Aviso sync:", err);
-              if (statusEl) statusEl.innerText = 'Modo Local (Seguro)';
-            });
-
-            if (statusEl) statusEl.innerText = 'Sincronizado na Nuvem';
-          }).catch(errRepo => {
-            console.error("Erro doc:", errRepo);
-            if (statusEl) statusEl.innerText = 'Modo Local';
-          });
-        }).catch(errAuth => {
-          console.error("Erro auth anônima:", errAuth);
-          if (statusEl) statusEl.innerText = 'Modo Local';
-        });
-
       } catch (e) {
-        console.error("Erro conexão:", e);
-        if (statusEl) statusEl.innerText = 'Modo Local';
+        console.warn("Modo Local ativo devido a restrição de rede:", e);
+        if (statusEl) statusEl.innerText = 'Modo Local (Seguro)';
       }
+    }
+
+    async function salvarNaNuvemDireto() {
+      try {
+        const payload = { fields: serializarFirestore(db) };
+        await fetch(firestoreRestUrl, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } catch (err) {
+        console.warn("Erro ao persistir na nuvem:", err);
+      }
+    }
+
+    function serializarFirestore(obj) {
+      if (typeof obj === 'string') return { stringValue: obj };
+      if (typeof obj === 'number') return { doubleValue: obj };
+      if (Array.isArray(obj)) return { arrayValue: { values: obj.map(item => serializarFirestore(item)) } };
+      if (obj !== null && typeof obj === 'object') {
+        let fields = {};
+        for (let key in obj) {
+          fields[key] = serializarFirestore(obj[key]);
+        }
+        return { mapValue: { fields: fields } };
+      }
+      return { stringValue: String(obj) };
+    }
+
+    function deserializarFirestore(fields) {
+      let obj = {};
+      for (let key in fields) {
+        const valObj = fields[key];
+        if ('stringValue' in valObj) obj[key] = valObj.stringValue;
+        else if ('doubleValue' in valObj) obj[key] = valObj.doubleValue;
+        else if ('integerValue' in valObj) obj[key] = Number(valObj.integerValue);
+        else if ('booleanValue' in valObj) obj[key] = valObj.booleanValue;
+        else if ('arrayValue' in valObj) {
+          obj[key] = (valObj.arrayValue.values || []).map(item => deserializarFirestore({ v: item }).v);
+        } else if ('mapValue' in valObj) {
+          obj[key] = deserializarFirestore(valObj.mapValue.fields || {});
+        }
+      }
+      return obj;
     }
 
     function mostrarToast(mensagem) {
@@ -489,7 +123,7 @@
 
     function salvarBackupLocal() {
       try {
-        localStorage.setItem('painel_financeiro_gi_local_v2', JSON.stringify(db));
+        localStorage.setItem('painel_financeiro_gi_local_v3', JSON.stringify(db));
       } catch(e) {}
     }
 
@@ -500,15 +134,13 @@
     function salvarLocalmente() {
       salvarBackupLocal();
       const statusEl = document.getElementById('status-sync');
-      if (docCompartilhadoRef) {
-        if (statusEl) statusEl.innerText = 'Salvando na nuvem...';
-        docCompartilhadoRef.set(db).then(() => {
-          if (statusEl) statusEl.innerText = 'Sincronizado na Nuvem';
-        }).catch(e => {
-          if (statusEl) statusEl.innerText = 'Modo Local';
-          mostrarToast("Salvo localmente com segurança!");
-        });
-      }
+      if (statusEl) statusEl.innerText = 'Salvando na nuvem...';
+      salvarNaNuvemDireto().then(() => {
+        if (statusEl) statusEl.innerText = 'Sincronizado na Nuvem';
+      }).catch(() => {
+        if (statusEl) statusEl.innerText = 'Modo Local';
+        mostrarToast("Salvo localmente com segurança!");
+      });
     }
 
     window.alternarModoLogin = function(modo) {
