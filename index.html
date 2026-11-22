@@ -407,19 +407,21 @@
       despesas: []
     };
 
-    let db = JSON.parse(JSON.stringify(dbPadrao));
+    let dbSalvoLocal = null;
+    try {
+      const localStr = localStorage.getItem('painel_financeiro_gi_local');
+      if (localStr) dbSalvoLocal = JSON.parse(localStr);
+    } catch(e) {}
+
+    let db = dbSalvoLocal || JSON.parse(JSON.stringify(dbPadrao));
     let usuarioAtual = "";
     let chartInstancia = null;
     let chartComparativoInstancia = null;
 
-    // Configuração de Sincronização em Nuvem (Firestore)
     let firestoreDb = null;
     let docCompartilhadoRef = null;
     let authUser = null;
 
-    // =========================================================================
-    // CONFIGURAÇÃO DO FIREBASE ATIVADA COM SUCESSO
-    // =========================================================================
     const MINHA_CONFIG_FIREBASE = {
       apiKey: "AIzaSyBl58rxbyUegUs40ldV7Sff51jDPGjucQ",
       authDomain: "painel-financeiro-c8281.firebaseapp.com",
@@ -433,7 +435,6 @@
     async function inicializarNuvem() {
       const statusEl = document.getElementById('status-sync');
       try {
-        // Usa a configuração do ambiente ou a chave personalizada do seu GitHub Pages
         const firebaseConfig = typeof __firebase_config !== 'undefined' 
           ? JSON.parse(__firebase_config) 
           : (MINHA_CONFIG_FIREBASE.apiKey !== "COLE_SUA_API_KEY_AQUI" ? MINHA_CONFIG_FIREBASE : null);
@@ -458,12 +459,13 @@
               await setDoc(docCompartilhadoRef, db);
             } else {
               db = snapInicial.data();
+              salvarBackupLocal();
             }
 
-            // Escuta alterações em tempo real de qualquer celular
             onSnapshot(docCompartilhadoRef, (docSnap) => {
               if (docSnap.exists()) {
                 db = docSnap.data();
+                salvarBackupLocal();
                 if (statusEl) statusEl.innerText = 'Sincronizado na Nuvem';
                 if (usuarioAtual) {
                   renderizarPainel();
@@ -471,13 +473,13 @@
               }
             }, (err) => {
               console.error("Erro na sincronização em tempo real:", err);
-              if (statusEl) statusEl.innerText = 'Modo Offline';
+              if (statusEl) statusEl.innerText = 'Modo Local (Seguro)';
             });
           }
         }
       } catch (e) {
         console.error("Falha ao conectar nuvem:", e);
-        if (statusEl) statusEl.innerText = 'Modo Local';
+        if (statusEl) statusEl.innerText = 'Modo Local (Erro Nuvem)';
       }
     }
 
@@ -489,11 +491,18 @@
       setTimeout(() => { x.className = x.className.replace("show", ""); }, 2500);
     }
 
+    function salvarBackupLocal() {
+      try {
+        localStorage.setItem('painel_financeiro_gi_local', JSON.stringify(db));
+      } catch(e) {}
+    }
+
     function iniciarSistema() {
-      // Mantém compatibilidade caso a nuvem ainda esteja conectando
+      salvarBackupLocal();
     }
 
     async function salvarLocalmente() {
+      salvarBackupLocal();
       const statusEl = document.getElementById('status-sync');
       if (docCompartilhadoRef && authUser) {
         try {
@@ -502,7 +511,8 @@
           if (statusEl) statusEl.innerText = 'Sincronizado na Nuvem';
         } catch (e) {
           console.error("Erro ao salvar na nuvem:", e);
-          mostrarToast("Erro ao sincronizar na nuvem!");
+          if (statusEl) statusEl.innerText = 'Modo Local (Erro Nuvem)';
+          mostrarToast("Salvo localmente (Verifique o Firebase)");
         }
       }
     }
@@ -608,8 +618,6 @@
       db.despesas.forEach(d => {
         let temPermissao = (d.quemGastou === usuarioAtual) || (d.titularCartao === usuarioAtual);
         if (temPermissao) {
-          // Regra: Se o usuário logado é apenas o titular do cartão (e não quem gastou),
-          // o gasto entra numa categoria separada "Compras [Nome]" para não misturar nas metas pessoais dele.
           const isCompraTerceiro = (d.titularCartao === usuarioAtual && d.quemGastou !== usuarioAtual);
           const itemProcessado = {
             ...d,
@@ -651,8 +659,6 @@
       renderizarMetasEGrafico(despesasMes, catsUser);
       renderizarAcertoCartoes(despesasMes);
       renderizarGraficoComparativo(mesFiltro, db.despesas.filter(d => (d.quemGastou === usuarioAtual || d.titularCartao === usuarioAtual)));
-      
-      // Atualiza também o extrato sempre que o mês mudar
       renderizarHistoricoGeral();
     };
 
@@ -666,11 +672,9 @@
 
       despesasMes.forEach(d => {
         const valor = Number(d.valor);
-        // Outra pessoa usou o MEU cartão -> Ela deve me pagar
         if (d.titularCartao === usuarioAtual && d.quemGastou !== usuarioAtual) {
           aReceberPorPessoa[d.quemGastou] = (aReceberPorPessoa[d.quemGastou] || 0) + valor;
         }
-        // Eu usei o cartão de OUTRA pessoa -> Eu devo pagar ao titular
         if (d.quemGastou === usuarioAtual && d.titularCartao && d.titularCartao !== 'Nenhum' && d.titularCartao !== usuarioAtual) {
           aPagarPorTitular[d.titularCartao] = (aPagarPorTitular[d.titularCartao] || 0) + valor;
         }
@@ -874,7 +878,6 @@
       mostrarToast("Gasto registrado!");
     };
 
-    // Função auxiliar para identificar parcelas pertencentes à mesma compra (inclusive lançamentos antigos sem compraId)
     function pertenceMesmaCompra(itemA, itemB) {
       if (itemA.compraId && itemB.compraId) {
         return itemA.compraId === itemB.compraId;
@@ -893,7 +896,6 @@
       const tbody = document.getElementById('tabela-historico-geral');
       if (!tbody) return;
       
-      // Filtra apenas despesas do usuário/cartão E estritamente do mês selecionado no topo
       let minhasDespesas = db.despesas.filter(d => 
         (d.quemGastou === usuarioAtual || d.titularCartao === usuarioAtual) &&
         d.mesRef === mesFiltro
