@@ -45,7 +45,7 @@
     .card h3 { margin: 0 0 4px 0; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); }
     .card .valor { font-size: 20px; font-weight: 700; }
     
-    /* Navegação Inferior Otimizada para Google Sites */
+    /* Navegação Inferior Otimizada */
     .tabs { position: fixed; bottom: 0; left: 0; width: 100%; background: #FAF9F6; border-top: 1px solid var(--border); display: flex; justify-content: space-between; overflow-x: auto; padding: 6px 4px; z-index: 1000; box-shadow: 0 -4px 12px rgba(0,0,0,0.05); -webkit-overflow-scrolling: touch; gap: 4px; }
     .tabs::-webkit-scrollbar { height: 3px; background: transparent; }
     .tabs::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
@@ -57,7 +57,6 @@
     .secao.active { display: block; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-    /* Tabelas compactas otimizadas para celulares */
     .table-container { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
     table { width: 100%; border-collapse: collapse; min-width: 320px; }
     th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--border); font-size: 12px; }
@@ -67,7 +66,6 @@
     .progress-bg { background: #E5E0D5; height: 6px; border-radius: 4px; overflow: hidden; margin-top: 4px; width: 100%; }
     .progress-fill { height: 100%; background: var(--primary); border-radius: 4px; }
     
-    /* Notificação Toast Mobile */
     #toast { visibility: hidden; min-width: 200px; background-color: var(--accent-blue); color: #fff; text-align: center; border-radius: 8px; padding: 10px 14px; position: fixed; z-index: 2000; left: 50%; transform: translateX(-50%); bottom: 70px; font-size: 12px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.2); opacity: 0; transition: opacity 0.3s, bottom 0.3s; }
     #toast.show { visibility: visible; opacity: 1; bottom: 80px; }
   </style>
@@ -82,7 +80,6 @@
     <h2 style="margin-bottom:2px; font-size: 18px; color: var(--accent-blue);">Gestão Patrimonial</h2>
     <p style="color:var(--text-muted); font-size: 12px; margin-top:0; margin-bottom: 14px;">Gustavo & Isaias</p>
 
-    <!-- Abas de Alternância Login / Cadastro -->
     <div style="display: flex; gap: 4px; margin-bottom: 10px; background: #EAE6DC; padding: 4px; border-radius: 8px;">
       <button id="btn-tab-login" onclick="window.alternarModoLogin('login')" style="background: var(--accent-blue); color: #fff; margin:0; font-size: 11px; padding: 6px; min-height: 32px;">Entrar</button>
       <button id="btn-tab-cad" onclick="window.alternarModoLogin('cadastro')" style="background: transparent; color: var(--text-muted); margin:0; font-size: 11px; padding: 6px; min-height: 32px; border:none; box-shadow:none;">Criar Conta</button>
@@ -111,7 +108,7 @@
     <div class="header">
       <div>
         <h2 style="margin:0; font-size: 16px;">Olá, <span id="nome-usuario"></span>! 👋</h2>
-        <small>🟢 <span id="status-sync">Online</span></small>
+        <small>🟢 <span id="status-sync">Modo Local</span></small>
       </div>
       <div style="display:flex; gap:6px; align-items:center;">
         <input type="month" id="filtro-mes" onchange="window.renderizarPainel()">
@@ -138,7 +135,7 @@
       </div>
     </div>
 
-    <!-- ABAS (MENU INFERIOR ESTILO APP) -->
+    <!-- ABAS (MENU INFERIOR) -->
     <div class="tabs">
       <button class="tab-btn active" onclick="window.mudarAba('aba-visao', this)">
         <span style="font-size:15px;">📊</span>Análise
@@ -241,7 +238,7 @@
       </div>
     </div>
 
-    <!-- MODAL DE EDIÇÃO DE DESPESA -->
+    <!-- MODAL DE EDIÇÃO -->
     <div id="modal-edicao" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:3000; align-items:center; justify-content:center; padding:12px;">
       <div class="card" style="max-width:380px; width:100%; margin:auto;">
         <h3 style="color: var(--accent-blue); margin-top:0;">✏️ Editar Despesa</h3>
@@ -269,11 +266,11 @@
       </div>
     </div>
 
-    <!-- MODAL DE CONFIRMAÇÃO DE EXCLUSÃO -->
+    <!-- MODAL DE EXCLUSÃO -->
     <div id="modal-exclusao" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:3000; align-items:center; justify-content:center; padding:12px;">
       <div class="card" style="max-width:380px; width:100%; margin:auto;">
         <h3 style="color: var(--danger); margin-top:0;">🗑️ Excluir Lançamento</h3>
-        <p id="texto-confirm-exclusao" style="font-size:13px; color:var(--text); margin-bottom:10px;">Deseja realmente excluir este lançamento?</p>
+        <p id="texto-confirm-exclusao" style="font-size:13px; color:var(--text); margin-bottom:10px;">Deseja realmente excluir?</p>
         <input type="hidden" id="del-desp-id">
         
         <div id="box-escopo-exclusao" style="display:none; margin-bottom:10px;">
@@ -292,7 +289,7 @@
       </div>
     </div>
 
-    <!-- ABA 5: PARCELAS FUTURAS -->
+    <!-- ABA 5: PARCELAS -->
     <div id="aba-parcelas" class="secao">
       <div class="card">
         <h3>🗓️ Parcelamentos Ativos</h3>
@@ -381,10 +378,10 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'financas-gustavo-isaias-nuvem-v1';
+    const appId = 'financas-gustavo-isaias-nuvem-v1';
     const hojeISO = new Date().toISOString().slice(0, 10);
     const mesAtualPadrao = hojeISO.slice(0, 7);
 
@@ -420,7 +417,6 @@
 
     let firestoreDb = null;
     let docCompartilhadoRef = null;
-    let authUser = null;
 
     const MINHA_CONFIG_FIREBASE = {
       apiKey: "AIzaSyBl58rxbyUegUs40ldV7Sff51jDPGjucQ",
@@ -435,54 +431,39 @@
     async function inicializarNuvem() {
       const statusEl = document.getElementById('status-sync');
       try {
-        const firebaseConfig = typeof __firebase_config !== 'undefined' 
-          ? JSON.parse(__firebase_config) 
-          : MINHA_CONFIG_FIREBASE;
-
-        const app = initializeApp(firebaseConfig);
+        const app = initializeApp(MINHA_CONFIG_FIREBASE);
         const auth = getAuth(app);
         firestoreDb = getFirestore(app);
 
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
+        await signInAnonymously(auth);
+        
+        docCompartilhadoRef = doc(firestoreDb, 'artifacts', appId, 'public', 'data', 'painel_compartilhado', 'dados_gerais');
+        
+        const snapInicial = await getDoc(docCompartilhadoRef);
+        if (!snapInicial.exists()) {
+          await setDoc(docCompartilhadoRef, db);
         } else {
-          await signInAnonymously(auth);
+          db = snapInicial.data();
+          salvarBackupLocal();
         }
-        authUser = auth.currentUser;
 
-        if (authUser) {
-          docCompartilhadoRef = doc(firestoreDb, 'artifacts', appId, 'public', 'data', 'painel_compartilhado', 'dados_gerais');
-          
-          try {
-            const snapInicial = await getDoc(docCompartilhadoRef);
-            if (!snapInicial.exists()) {
-              await setDoc(docCompartilhadoRef, db);
-            } else {
-              db = snapInicial.data();
-              salvarBackupLocal();
+        onSnapshot(docCompartilhadoRef, (docSnap) => {
+          if (docSnap.exists()) {
+            db = docSnap.data();
+            salvarBackupLocal();
+            if (statusEl) statusEl.innerText = 'Sincronizado na Nuvem';
+            if (usuarioAtual) {
+              renderizarPainel();
             }
-          } catch(errDoc) {
-            console.warn("Aviso ao ler documento inicial:", errDoc);
           }
+        }, (err) => {
+          console.warn("Aviso de sincronização em tempo real:", err);
+          if (statusEl) statusEl.innerText = 'Modo Local (Seguro)';
+        });
 
-          onSnapshot(docCompartilhadoRef, (docSnap) => {
-            if (docSnap.exists()) {
-              db = docSnap.data();
-              salvarBackupLocal();
-              if (statusEl) statusEl.innerText = 'Sincronizado na Nuvem';
-              if (usuarioAtual) {
-                renderizarPainel();
-              }
-            }
-          }, (err) => {
-            console.error("Erro na sincronização:", err);
-            if (statusEl) statusEl.innerText = 'Modo Local (Seguro)';
-          });
-
-          if (statusEl) statusEl.innerText = 'Sincronizado na Nuvem';
-        }
+        if (statusEl) statusEl.innerText = 'Sincronizado na Nuvem';
       } catch (e) {
-        console.error("Falha ao conectar nuvem:", e);
+        console.warn("Executando em Modo Local devido a restrição de rede/API:", e);
         if (statusEl) statusEl.innerText = 'Modo Local';
       }
     }
@@ -508,15 +489,14 @@
     async function salvarLocalmente() {
       salvarBackupLocal();
       const statusEl = document.getElementById('status-sync');
-      if (docCompartilhadoRef && authUser) {
+      if (docCompartilhadoRef) {
         try {
           if (statusEl) statusEl.innerText = 'Salvando na nuvem...';
           await setDoc(docCompartilhadoRef, db);
           if (statusEl) statusEl.innerText = 'Sincronizado na Nuvem';
         } catch (e) {
-          console.error("Erro ao salvar na nuvem:", e);
-          if (statusEl) statusEl.innerText = 'Modo Local (Erro Nuvem)';
-          mostrarToast("Salvo localmente (Verifique o Firebase)");
+          if (statusEl) statusEl.innerText = 'Modo Local';
+          mostrarToast("Salvo localmente com segurança!");
         }
       }
     }
@@ -551,7 +531,7 @@
       const senha = document.getElementById('cad-senha').value.trim();
 
       if (!nome || !email || !senha) {
-        document.getElementById('login-erro').innerText = 'Preencha todos os campos para cadastrar!';
+        document.getElementById('login-erro').innerText = 'Preencha todos os campos!';
         return;
       }
 
@@ -565,7 +545,7 @@
       db.categorias.push({ usuario: nome, nome: 'Geral', meta: 1000 });
       await salvarLocalmente();
 
-      mostrarToast('Cadastro realizado com sucesso! Faça login.');
+      mostrarToast('Cadastro realizado com sucesso!');
       window.alternarModoLogin('login');
       document.getElementById('login-email').value = email;
       document.getElementById('login-senha').value = '';
@@ -685,14 +665,12 @@
       });
 
       let htmlAcerto = '';
-
       for (const [pessoa, total] of Object.entries(aReceberPorPessoa)) {
         htmlAcerto += `<div style="display:flex; justify-content:space-between; align-items:center; background:#EBF5EE; padding:8px 10px; border-radius:8px; border:1px solid #C2E0CB;">
           <span style="font-size:12px; color:var(--text);">📥 <strong>${pessoa}</strong> deve te pagar:</span>
           <strong style="font-size:13px; color:var(--success);">R$ ${total.toFixed(2)}</strong>
         </div>`;
       }
-
       for (const [titular, total] of Object.entries(aPagarPorTitular)) {
         htmlAcerto += `<div style="display:flex; justify-content:space-between; align-items:center; background:#FDECEC; padding:8px 10px; border-radius:8px; border:1px solid #F5C2C2;">
           <span style="font-size:12px; color:var(--text);">📤 Você deve pagar <strong>${titular}</strong>:</span>
@@ -950,7 +928,7 @@
       if (d.totalParcelas > 1) {
         boxEscopo.style.display = 'block';
         document.getElementById('del-desp-escopo').value = 'atual';
-        textoConfirm.innerText = `Esta é a parcela ${d.parcelaAtual}/${d.totalParcelas} de "${d.descricao}". Como deseja excluir?`;
+        textoConfirm.innerText = `Parcela ${d.parcelaAtual}/${d.totalParcelas} de "${d.descricao}". Como deseja excluir?`;
       } else {
         boxEscopo.style.display = 'none';
         textoConfirm.innerText = `Deseja realmente excluir "${d.descricao}"?`;
