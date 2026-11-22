@@ -376,12 +376,13 @@
     </div>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+  <!-- FIREBASE COMPAT (Versão global infalível para GitHub Pages / Iframes) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-    const appId = 'financas-gustavo-isaias-nuvem-v1';
+  <script>
+    const appId = 'financas-gustavo-isaias-nuvem-v2';
     const hojeISO = new Date().toISOString().slice(0, 10);
     const mesAtualPadrao = hojeISO.slice(0, 7);
 
@@ -406,7 +407,7 @@
 
     let dbSalvoLocal = null;
     try {
-      const localStr = localStorage.getItem('painel_financeiro_gi_local');
+      const localStr = localStorage.getItem('painel_financeiro_gi_local_v2');
       if (localStr) dbSalvoLocal = JSON.parse(localStr);
     } catch(e) {}
 
@@ -428,43 +429,53 @@
       measurementId: "G-FWRNF8DW80"
     };
 
-    async function inicializarNuvem() {
+    function inicializarNuvem() {
       const statusEl = document.getElementById('status-sync');
       try {
-        const app = initializeApp(MINHA_CONFIG_FIREBASE);
-        const auth = getAuth(app);
-        firestoreDb = getFirestore(app);
-
-        await signInAnonymously(auth);
-        
-        docCompartilhadoRef = doc(firestoreDb, 'artifacts', appId, 'public', 'data', 'painel_compartilhado', 'dados_gerais');
-        
-        const snapInicial = await getDoc(docCompartilhadoRef);
-        if (!snapInicial.exists()) {
-          await setDoc(docCompartilhadoRef, db);
-        } else {
-          db = snapInicial.data();
-          salvarBackupLocal();
+        if (!firebase.apps.length) {
+          firebase.initializeApp(MINHA_CONFIG_FIREBASE);
         }
+        const auth = firebase.auth();
+        firestoreDb = firebase.firestore();
 
-        onSnapshot(docCompartilhadoRef, (docSnap) => {
-          if (docSnap.exists()) {
-            db = docSnap.data();
-            salvarBackupLocal();
-            if (statusEl) statusEl.innerText = 'Sincronizado na Nuvem';
-            if (usuarioAtual) {
-              renderizarPainel();
+        auth.signInAnonymously().then(() => {
+          docCompartilhadoRef = firestoreDb.collection('artifacts').doc(appId).collection('public').doc('dados_gerais');
+          
+          docCompartilhadoRef.get().then((docSnap) => {
+            if (!docSnap.exists) {
+              docCompartilhadoRef.set(db);
+            } else {
+              db = docSnap.data();
+              salvarBackupLocal();
             }
-          }
-        }, (err) => {
-          console.warn("Aviso de sincronização em tempo real:", err);
-          if (statusEl) statusEl.innerText = 'Modo Local (Seguro)';
+
+            docCompartilhadoRef.onSnapshot((docSnapLive) => {
+              if (docSnapLive.exists) {
+                db = docSnapLive.data();
+                salvarBackupLocal();
+                if (statusEl) statusEl.innerText = 'Sincronizado na Nuvem';
+                if (usuarioAtual) {
+                  window.renderizarPainel();
+                }
+              }
+            }, (err) => {
+              console.warn("Aviso sync:", err);
+              if (statusEl) statusEl.innerText = 'Modo Local (Seguro)';
+            });
+
+            if (statusEl) statusEl.innerText = 'Sincronizado na Nuvem';
+          }).catch(errRepo => {
+            console.error("Erro doc:", errRepo);
+            if (statusEl) statusEl.innerText = 'Modo Local';
+          });
+        }).catch(errAuth => {
+          console.error("Erro auth anônima:", errAuth);
+          if (statusEl) statusEl.innerText = 'Modo Local';
         });
 
-        if (statusEl) statusEl.innerText = 'Sincronizado na Nuvem';
       } catch (e) {
-        console.error("Erro na conexão com Firebase:", e);
-        if (statusEl) statusEl.innerText = 'Modo Local (Erro Nuvem)';
+        console.error("Erro conexão:", e);
+        if (statusEl) statusEl.innerText = 'Modo Local';
       }
     }
 
@@ -478,7 +489,7 @@
 
     function salvarBackupLocal() {
       try {
-        localStorage.setItem('painel_financeiro_gi_local', JSON.stringify(db));
+        localStorage.setItem('painel_financeiro_gi_local_v2', JSON.stringify(db));
       } catch(e) {}
     }
 
@@ -486,18 +497,17 @@
       salvarBackupLocal();
     }
 
-    async function salvarLocalmente() {
+    function salvarLocalmente() {
       salvarBackupLocal();
       const statusEl = document.getElementById('status-sync');
       if (docCompartilhadoRef) {
-        try {
-          if (statusEl) statusEl.innerText = 'Salvando na nuvem...';
-          await setDoc(docCompartilhadoRef, db);
+        if (statusEl) statusEl.innerText = 'Salvando na nuvem...';
+        docCompartilhadoRef.set(db).then(() => {
           if (statusEl) statusEl.innerText = 'Sincronizado na Nuvem';
-        } catch (e) {
+        }).catch(e => {
           if (statusEl) statusEl.innerText = 'Modo Local';
           mostrarToast("Salvo localmente com segurança!");
-        }
+        });
       }
     }
 
@@ -525,7 +535,7 @@
       }
     };
 
-    window.cadastrarNovoUsuario = async function() {
+    window.cadastrarNovoUsuario = function() {
       const nome = document.getElementById('cad-nome').value.trim();
       const email = document.getElementById('cad-email').value.trim();
       const senha = document.getElementById('cad-senha').value.trim();
@@ -543,7 +553,7 @@
 
       db.usuarios.push({ email, senha, nome });
       db.categorias.push({ usuario: nome, nome: 'Geral', meta: 1000 });
-      await salvarLocalmente();
+      salvarLocalmente();
 
       mostrarToast('Cadastro realizado com sucesso!');
       window.alternarModoLogin('login');
@@ -563,7 +573,7 @@
         document.getElementById('painel-principal').style.display = 'block';
         document.getElementById('filtro-mes').value = mesAtualPadrao;
         document.getElementById('desp-data').value = hojeISO;
-        renderizarPainel();
+        window.renderizarPainel();
         mostrarToast(`Bem-vindo, ${usuarioAtual}!`);
       } else {
         document.getElementById('login-erro').innerText = 'E-mail ou senha incorretos!';
@@ -583,9 +593,9 @@
       document.getElementById(idAba).classList.add('active');
       if (btn) btn.classList.add('active');
       
-      if (idAba === 'aba-historico') renderizarHistoricoGeral();
-      if (idAba === 'aba-cartoes') renderizarTabelaCartoesConfig();
-      if (idAba === 'aba-metas') renderizarTabelaMetasConfig();
+      if (idAba === 'aba-historico') window.renderizarHistoricoGeral();
+      if (idAba === 'aba-cartoes') window.renderizarTabelaCartoesConfig();
+      if (idAba === 'aba-metas') window.renderizarTabelaMetasConfig();
     };
 
     window.renderizarPainel = function() {
@@ -643,7 +653,7 @@
       renderizarMetasEGrafico(despesasMes, catsUser);
       renderizarAcertoCartoes(despesasMes);
       renderizarGraficoComparativo(mesFiltro, db.despesas.filter(d => (d.quemGastou === usuarioAtual || d.titularCartao === usuarioAtual)));
-      renderizarHistoricoGeral();
+      window.renderizarHistoricoGeral();
     };
 
     function renderizarAcertoCartoes(despesasMes) {
@@ -795,7 +805,7 @@
       else db.receitas.push({ usuario: usuarioAtual, mes: mes, valor: valor });
       
       salvarLocalmente();
-      renderizarPainel();
+      window.renderizarPainel();
       mostrarToast("Receita salva!");
     };
 
@@ -856,7 +866,7 @@
       document.getElementById('desp-desc').value = '';
       document.getElementById('desp-valor').value = '';
       window.mudarAba('aba-visao', document.querySelectorAll('.tab-btn')[0]);
-      renderizarPainel();
+      window.renderizarPainel();
       mostrarToast("Gasto registrado!");
     };
 
@@ -957,8 +967,8 @@
       }
 
       salvarLocalmente();
-      fecharModalExclusao();
-      renderizarPainel();
+      window.fecharModalExclusao();
+      window.renderizarPainel();
       mostrarToast("Lançamento(s) excluído(s)!");
     };
 
@@ -1017,8 +1027,8 @@
         });
 
         salvarLocalmente();
-        fecharModalEdicao();
-        renderizarPainel();
+        window.fecharModalEdicao();
+        window.renderizarPainel();
         mostrarToast("Atualizado com sucesso!");
       }
     };
@@ -1055,7 +1065,7 @@
         document.getElementById('cart-nome').value = '';
       }
       salvarLocalmente();
-      renderizarTabelaCartoesConfig();
+      window.renderizarTabelaCartoesConfig();
       mostrarToast("Cartão salvo!");
     };
 
@@ -1084,7 +1094,7 @@
     window.excluirCartao = function(idx) {
       db.cartoes.splice(idx, 1);
       salvarLocalmente();
-      renderizarTabelaCartoesConfig();
+      window.renderizarTabelaCartoesConfig();
       mostrarToast("Cartão removido!");
     };
 
@@ -1120,7 +1130,7 @@
         document.getElementById('cat-meta').value = '';
       }
       salvarLocalmente();
-      renderizarTabelaMetasConfig();
+      window.renderizarTabelaMetasConfig();
       mostrarToast("Categoria salva!");
     };
 
@@ -1146,7 +1156,7 @@
     window.excluirCategoria = function(idx) {
       db.categorias.splice(idx, 1);
       salvarLocalmente();
-      renderizarTabelaMetasConfig();
+      window.renderizarTabelaMetasConfig();
       mostrarToast("Categoria removida!");
     };
 
