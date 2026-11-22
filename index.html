@@ -108,7 +108,7 @@
     <div class="header">
       <div>
         <h2 style="margin:0; font-size: 16px;">Olá, <span id="nome-usuario"></span>! 👋</h2>
-        <small>🟢 <span id="status-sync">Modo Local</span></small>
+        <small>🟡 <span id="status-sync">Conectando Nuvem...</span></small>
       </div>
       <div style="display:flex; gap:6px; align-items:center;">
         <input type="month" id="filtro-mes" onchange="window.renderizarPainel()">
@@ -463,8 +463,8 @@
 
         if (statusEl) statusEl.innerText = 'Sincronizado na Nuvem';
       } catch (e) {
-        console.warn("Executando em Modo Local devido a restrição de rede/API:", e);
-        if (statusEl) statusEl.innerText = 'Modo Local';
+        console.error("Erro na conexão com Firebase:", e);
+        if (statusEl) statusEl.innerText = 'Modo Local (Erro Nuvem)';
       }
     }
 
