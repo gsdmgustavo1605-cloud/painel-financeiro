@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Finanças - Gustavo & Isaias</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --primary: #3B4D3B;
+      --primary-dark: #2A382A;
+      --accent-blue: #1E3A5F;
+      --bg: #F4F1EA;
+      --card: #FAF9F6;
+      --border: #E2DDD2;
+      --text: #1F2933;
+      --text-muted: #5C6670;
+      --danger: #B91C1C;
+      --success: #2E6F40;
+    }
+    * { box-sizing: border-box; font-family: 'Inter', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+    body { background-color: var(--bg); color: var(--text); margin: 0; padding: 8px; display: flex; justify-content: center; }
+    
+    /* Login Mobile First */
+    #tela-login { width: 100%; max-width: 380px; margin: 40px auto; background: var(--card); padding: 20px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 8px 24px rgba(30, 58, 95, 0.08); text-align: center; }
+    input, select, button { width: 100%; padding: 12px; margin: 6px 0; border-radius: 10px; border: 1px solid var(--border); font-size: 15px; background-color: #FFFFFF; color: var(--text); }
+    input:focus, select:focus { outline: none; border-color: var(--accent-blue); box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.12); }
+    button { background-color: var(--primary); color: #FAF9F6; border: none; font-weight: 600; cursor: pointer; min-height: 48px; }
+    button:active { filter: brightness(0.95); }
+    
+    /* Painel Mobile First */
+    #painel-principal { display: none; width: 100%; max-width: 480px; margin: 0 auto; padding-bottom: 70px; }
+    .header { display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, var(--primary) 0%, var(--accent-blue) 100%); color: #FAF9F6; padding: 14px 16px; border-radius: 14px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(42, 56, 42, 0.12); gap: 8px; }
+    .header small { color: #DCD7C9; font-size: 11px; }
+    .header input[type="month"] { background: rgba(255, 255, 255, 0.15); color: #FFFFFF; border: 1px solid rgba(255, 255, 255, 0.3); width: auto; padding: 6px 10px; font-size: 12px; }
+    .header input[type="month"]::-webkit-calendar-picker-indicator { filter: invert(1); }
+    .btn-sair { background: rgba(255, 255, 255, 0.15) !important; border: 1px solid rgba(255, 255, 255, 0.3) !important; width: auto; margin: 0; padding: 6px 10px; font-size: 11px; }
+    
+    .grid-resumo { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 12px; }
+    .card { background: var(--card); padding: 14px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.03); width: 100%; margin-bottom: 10px; }
+    .card-destaque-azul { border-left: 4px solid var(--accent-blue); }
+    .card-destaque-verde { border-left: 4px solid var(--primary); }
+    .card-destaque-bege { border-left: 4px solid #A89F91; }
+    .card h3 { margin: 0 0 4px 0; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); }
+    .card .valor { font-size: 20px; font-weight: 700; }
+    
+    /* Navegação Inferior Otimizada para Google Sites */
+    .tabs { position: fixed; bottom: 0; left: 0; width: 100%; background: #FAF9F6; border-top: 1px solid var(--border); display: flex; justify-content: space-between; overflow-x: auto; padding: 6px 4px; z-index: 1000; box-shadow: 0 -4px 12px rgba(0,0,0,0.05); -webkit-overflow-scrolling: touch; gap: 4px; }
+    .tabs::-webkit-scrollbar { height: 3px; background: transparent; }
+    .tabs::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .tab-btn { background: transparent; color: var(--text-muted); border: none; padding: 4px 6px; margin: 0; font-size: 9px; font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 2px; flex: 1 1 auto; min-width: 44px; min-height: auto; white-space: nowrap; }
+    .tab-btn:hover { background: transparent; color: var(--text); transform: none; }
+    .tab-btn.active { color: var(--accent-blue); background: transparent; }
+    
+    .secao { display: none; animation: fadeIn 0.2s ease; width: 100%; }
+    .secao.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    /* Tabelas compactas otimizadas para celulares */
+    .table-container { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { width: 100%; border-collapse: collapse; min-width: 320px; }
+    th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--border); font-size: 12px; }
+    th { color: var(--accent-blue); font-weight: 700; background-color: #F0EDE5; font-size: 10px; text-transform: uppercase; }
+    
+    .badge-compartilhado { background: #E3ECF5; color: var(--accent-blue); border: 1px solid #B8CCE4; padding: 2px 6px; border-radius: 12px; font-size: 9px; font-weight: 600; display: inline-block; margin-top: 2px; }
+    .progress-bg { background: #E5E0D5; height: 6px; border-radius: 4px; overflow: hidden; margin-top: 4px; width: 100%; }
+    .progress-fill { height: 100%; background: var(--primary); border-radius: 4px; }
+    
+    /* Notificação Toast Mobile */
+    #toast { visibility: hidden; min-width: 200px; background-color: var(--accent-blue); color: #fff; text-align: center; border-radius: 8px; padding: 10px 14px; position: fixed; z-index: 2000; left: 50%; transform: translateX(-50%); bottom: 70px; font-size: 12px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.2); opacity: 0; transition: opacity 0.3s, bottom 0.3s; }
+    #toast.show { visibility: visible; opacity: 1; bottom: 80px; }
+  </style>
+</head>
+<body>
+
+  <div id="toast">Ação realizada!</div>
+
+  <!-- TELA DE LOGIN -->
+  <div id="tela-login">
+    <div style="width: 48px; height: 48px; background: var(--primary); color: #FAF9F6; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin: 0 auto 10px auto;">🏛️</div>
+    <h2 style="margin-bottom:2px; font-size: 18px; color: var(--accent-blue);">Gestão Patrimonial</h2>
+    <p style="color:var(--text-muted); font-size: 12px; margin-top:0; margin-bottom: 14px;">Gustavo & Isaias</p>
+
+    <!-- Abas de Alternância Login / Cadastro -->
+    <div style="display: flex; gap: 4px; margin-bottom: 10px; background: #EAE6DC; padding: 4px; border-radius: 8px;">
+      <button id="btn-tab-login" onclick="window.alternarModoLogin('login')" style="background: var(--accent-blue); color: #fff; margin:0; font-size: 11px; padding: 6px; min-height: 32px;">Entrar</button>
+      <button id="btn-tab-cad" onclick="window.alternarModoLogin('cadastro')" style="background: transparent; color: var(--text-muted); margin:0; font-size: 11px; padding: 6px; min-height: 32px; border:none; box-shadow:none;">Criar Conta</button>
+    </div>
+
+    <!-- FORMULÁRIO DE LOGIN -->
+    <div id="form-login-div">
+      <input type="email" id="login-email" placeholder="E-mail">
+      <input type="password" id="login-senha" placeholder="Senha">
+      <button onclick="window.entrar()" style="background: var(--accent-blue); margin-top: 8px;">Entrar no Painel</button>
+    </div>
+
+    <!-- FORMULÁRIO DE CADASTRO -->
+    <div id="form-cadastro-div" style="display:none;">
+      <input type="text" id="cad-nome" placeholder="Seu Nome">
+      <input type="email" id="cad-email" placeholder="Seu E-mail">
+      <input type="password" id="cad-senha" placeholder="Sua Senha">
+      <button onclick="window.cadastrarNovoUsuario()" style="background: var(--primary); margin-top: 8px;">Cadastrar Novo Usuário</button>
+    </div>
+
+    <p id="login-erro" style="color: var(--danger); font-size: 12px; font-weight: 600; margin-top: 8px;"></p>
+  </div>
+
+  <!-- PAINEL PRINCIPAL -->
+  <div id="painel-principal">
+    <div class="header">
+      <div>
+        <h2 style="margin:0; font-size: 16px;">Olá, <span id="nome-usuario"></span>! 👋</h2>
+        <small>🟢 <span id="status-sync">Online</span></small>
+      </div>
+      <div style="display:flex; gap:6px; align-items:center;">
+        <input type="month" id="filtro-mes" onchange="window.renderizarPainel()">
+        <button onclick="window.sair()" class="btn-sair">Sair</button>
+      </div>
+    </div>
+
+    <!-- RESUMO -->
+    <div class="grid-resumo">
+      <div class="card card-destaque-verde" style="display:flex; justify-content:space-between; align-items:center; padding: 12px 14px;">
+        <div>
+          <h3>💰 Receita Prevista</h3>
+          <div class="valor" style="color: var(--primary); font-size: 18px;" id="resumo-receita">R$ 0,00</div>
+        </div>
+        <button onclick="window.mudarAba('aba-receita', document.querySelectorAll('.tab-btn')[2])" style="width: auto; padding: 6px 10px; font-size: 11px; min-height: auto; margin:0;">Editar</button>
+      </div>
+      <div class="card card-destaque-bege">
+        <h3>💸 Despesas do Mês</h3>
+        <div class="valor" style="color: var(--danger);" id="resumo-despesa">R$ 0,00</div>
+      </div>
+      <div class="card card-destaque-azul">
+        <h3>⚖️ Saldo Disponível</h3>
+        <div class="valor" id="resumo-saldo">R$ 0,00</div>
+      </div>
+    </div>
+
+    <!-- ABAS (MENU INFERIOR ESTILO APP) -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="window.mudarAba('aba-visao', this)">
+        <span style="font-size:15px;">📊</span>Análise
+      </button>
+      <button class="tab-btn" onclick="window.mudarAba('aba-gasto', this)">
+        <span style="font-size:15px;">💸</span>Gasto
+      </button>
+      <button class="tab-btn" onclick="window.mudarAba('aba-receita', this)">
+        <span style="font-size:15px;">💰</span>Receita
+      </button>
+      <button class="tab-btn" onclick="window.mudarAba('aba-historico', this)">
+        <span style="font-size:15px;">📋</span>Extrato
+      </button>
+      <button class="tab-btn" onclick="window.mudarAba('aba-parcelas', this)">
+        <span style="font-size:15px;">🗓️</span>Parcelas
+      </button>
+      <button class="tab-btn" onclick="window.mudarAba('aba-cartoes', this)">
+        <span style="font-size:15px;">💳</span>Cartões
+      </button>
+      <button class="tab-btn" onclick="window.mudarAba('aba-metas', this)">
+        <span style="font-size:15px;">🎯</span>Metas
+      </button>
+    </div>
+
+    <!-- ABA 1: VISÃO GERAL -->
+    <div id="aba-visao" class="secao active">
+      <div class="card">
+        <h3>📊 Evolução Mensal</h3>
+        <div style="height: 160px; position: relative;">
+          <canvas id="graficoComparativoMeses"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>📈 Distribuição de Gastos</h3>
+        <div style="height: 150px; position: relative; width: 100%;">
+          <canvas id="graficoCategorias"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>🎯 Metas por Categoria</h3>
+        <div id="lista-metas" style="max-height: 180px; overflow-y: auto;"></div>
+      </div>
+    </div>
+
+    <!-- ABA 2: LANÇAR GASTO -->
+    <div id="aba-gasto" class="secao">
+      <div class="card">
+        <h3>💸 Novo Gasto</h3>
+        <input type="text" id="desp-desc" placeholder="Descrição (Ex: Mercado)">
+        <label style="font-size:11px; color:#5C6670;">Data da Compra:</label>
+        <input type="date" id="desp-data">
+        <label style="font-size:11px; color:#5C6670;">Categoria:</label>
+        <select id="desp-cat"></select>
+        <label style="font-size:11px; color:#5C6670;">Forma de Pagamento:</label>
+        <select id="desp-pagamento" onchange="window.verificarCartao()"></select>
+        <input type="number" id="desp-valor" placeholder="Valor Total (R$)" step="0.01">
+        <div id="box-parcelas" style="display:none;">
+          <label style="font-size:11px; color:#5C6670;">Parcelas:</label>
+          <input type="number" id="desp-parcelas" value="1" min="1" max="48">
+        </div>
+        <button onclick="window.registrarDespesa()" style="background:var(--accent-blue); margin-top:10px;">Salvar Lançamento</button>
+      </div>
+    </div>
+
+    <!-- ABA 3: LANÇAR RECEITA -->
+    <div id="aba-receita" class="secao">
+      <div class="card">
+        <h3>💰 Receita do Mês</h3>
+        <p style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">Defina o ganho para o mês selecionado.</p>
+        <input type="number" id="rec-valor" placeholder="Valor (R$)" step="0.01">
+        <button onclick="window.registrarReceita()" style="background:var(--primary); margin-top:10px;">Salvar Receita</button>
+      </div>
+    </div>
+
+    <!-- ABA 4: HISTÓRICO GERAL E EDIÇÃO -->
+    <div id="aba-historico" class="secao">
+      <div class="card">
+        <h3>📋 Extrato e Edição</h3>
+        <input type="text" id="filtro-busca" placeholder="🔍 Buscar gasto..." oninput="window.renderizarHistoricoGeral()" style="margin-bottom:8px; font-size:13px; padding:8px;">
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Data/Mês</th>
+                <th>Descrição</th>
+                <th>Valor</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-historico-geral"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL DE EDIÇÃO DE DESPESA -->
+    <div id="modal-edicao" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:3000; align-items:center; justify-content:center; padding:12px;">
+      <div class="card" style="max-width:380px; width:100%; margin:auto;">
+        <h3 style="color: var(--accent-blue); margin-top:0;">✏️ Editar Despesa</h3>
+        <input type="hidden" id="edit-desp-id">
+        <label style="font-size:11px; color:#5C6670;">Descrição:</label>
+        <input type="text" id="edit-desp-desc">
+        <label style="font-size:11px; color:#5C6670;">Categoria:</label>
+        <select id="edit-desp-cat"></select>
+        <label style="font-size:11px; color:#5C6670;">Valor (R$):</label>
+        <input type="number" id="edit-desp-valor" step="0.01">
+        <div style="display:flex; gap:8px; margin-top:10px;">
+          <button onclick="window.salvarEdicaoDespesa()" style="background:var(--accent-blue); margin:0;">Salvar</button>
+          <button onclick="window.fecharModalEdicao()" style="background:#5C6670; margin:0;">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ABA 5: PARCELAS FUTURAS -->
+    <div id="aba-parcelas" class="secao">
+      <div class="card">
+        <h3>🗓️ Parcelamentos Ativos</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Mês</th>
+                <th>Descrição</th>
+                <th>Parc</th>
+                <th>Valor</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-parcelas"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ABA 6: CARTÕES -->
+    <div id="aba-cartoes" class="secao">
+      <div class="card">
+        <h3 id="titulo-form-cartao">💳 Novo Cartão</h3>
+        <input type="hidden" id="cart-edit-idx" value="-1">
+        <input type="text" id="cart-nome" placeholder="Nome (Ex: Nubank)">
+        <select id="cart-titular">
+          <option value="Gustavo">Gustavo</option>
+          <option value="Isaias">Isaias</option>
+        </select>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+          <input type="number" id="cart-fechamento" placeholder="Fechamento (dia)" min="1" max="31">
+          <input type="number" id="cart-vencimento" placeholder="Vencimento (dia)" min="1" max="31">
+        </div>
+        <div style="display:flex; gap:6px; margin-top:6px;">
+          <button onclick="window.registrarCartao()" id="btn-salvar-cartao">Salvar Cartão</button>
+          <button onclick="window.cancelarEdicaoCartao()" id="btn-cancelar-cartao" style="display:none; background:#5C6670;">Cancelar</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>📋 Cartões Cadastrados</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Cartão</th>
+                <th>Titular</th>
+                <th>Datas</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-cartoes-config"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ABA 7: METAS -->
+    <div id="aba-metas" class="secao">
+      <div class="card">
+        <h3 id="titulo-form-cat">🏷️ Nova Categoria</h3>
+        <input type="hidden" id="cat-edit-idx" value="-1">
+        <input type="text" id="cat-nome" placeholder="Nome (Ex: Alimentação)">
+        <input type="number" id="cat-meta" placeholder="Meta mensal (R$)" step="0.01">
+        <div style="display:flex; gap:6px; margin-top:6px;">
+          <button onclick="window.registrarCategoria()" id="btn-salvar-cat">Salvar Categoria</button>
+          <button onclick="window.cancelarEdicaoCategoria()" id="btn-cancelar-cat" style="display:none; background:#5C6670;">Cancelar</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>🎯 Categorias Cadastradas</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Categoria</th>
+                <th>Meta</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-metas-config"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    const appId = 'financas-gustavo-isaias-mobile-v2-persist';
+    const hojeISO = new Date().toISOString().slice(0, 10);
+    const mesAtualPadrao = hojeISO.slice(0, 7);
+
+    const dbPadrao = {
+      usuarios: [
+        { email: 'gustavo@email.com', senha: '1234', nome: 'Gustavo' },
+        { email: 'isaias@email.com', senha: '1234', nome: 'Isaias' }
+      ],
+      receitas: [],
+      categorias: [
+        { usuario: 'Gustavo', nome: 'Alimentação', meta: 1000 },
+        { usuario: 'Gustavo', nome: 'Transporte', meta: 500 },
+        { usuario: 'Isaias', nome: 'Alimentação', meta: 1000 },
+        { usuario: 'Isaias', nome: 'Moradia', meta: 1500 }
+      ],
+      cartoes: [
+        { nome: 'Nubank', titular: 'Gustavo', fechamento: '5', vencimento: '12' },
+        { nome: 'Itaú', titular: 'Isaias', fechamento: '10', vencimento: '17' }
+      ],
+      despesas: []
+    };
+
+    let db = JSON.parse(JSON.stringify(dbPadrao));
+    let usuarioAtual = "";
+    let chartInstancia = null;
+    let chartComparativoInstancia = null;
+
+    function mostrarToast(mensagem) {
+      const x = document.getElementById("toast");
+      if (!x) return;
+      x.innerText = mensagem;
+      x.className = "show";
+      setTimeout(() => { x.className = x.className.replace("show", ""); }, 2500);
+    }
+
+    function iniciarSistema() {
+      try {
+        const dadosSalvos = localStorage.getItem(appId) || sessionStorage.getItem(appId);
+        if (dadosSalvos) {
+          db = JSON.parse(dadosSalvos);
+        } else {
+          localStorage.setItem(appId, JSON.stringify(dbPadrao));
+          sessionStorage.setItem(appId, JSON.stringify(dbPadrao));
+        }
+      } catch (e) {
+        console.error("Erro ao carregar armazenamento persistente:", e);
+      }
+    }
+
+    function salvarLocalmente() {
+      try { 
+        const jsonStr = JSON.stringify(db);
+        localStorage.setItem(appId, jsonStr);
+        sessionStorage.setItem(appId, jsonStr);
+      } catch (e) { 
+        console.error("Erro ao salvar:", e); 
+      }
+    }
+
+    window.alternarModoLogin = function(modo) {
+      const btnLogin = document.getElementById('btn-tab-login');
+      const btnCad = document.getElementById('btn-tab-cad');
+      const divLogin = document.getElementById('form-login-div');
+      const divCad = document.getElementById('form-cadastro-div');
+      document.getElementById('login-erro').innerText = '';
+
+      if (modo === 'login') {
+        btnLogin.style.background = 'var(--accent-blue)';
+        btnLogin.style.color = '#fff';
+        btnCad.style.background = 'transparent';
+        btnCad.style.color = 'var(--text-muted)';
+        divLogin.style.display = 'block';
+        divCad.style.display = 'none';
+      } else {
+        btnCad.style.background = 'var(--primary)';
+        btnCad.style.color = '#fff';
+        btnLogin.style.background = 'transparent';
+        btnLogin.style.color = 'var(--text-muted)';
+        divCad.style.display = 'block';
+        divLogin.style.display = 'none';
+      }
+    };
+
+    window.cadastrarNovoUsuario = function() {
+      iniciarSistema();
+      const nome = document.getElementById('cad-nome').value.trim();
+      const email = document.getElementById('cad-email').value.trim();
+      const senha = document.getElementById('cad-senha').value.trim();
+
+      if (!nome || !email || !senha) {
+        document.getElementById('login-erro').innerText = 'Preencha todos os campos para cadastrar!';
+        return;
+      }
+
+      const existe = db.usuarios.find(u => u.email === email);
+      if (existe) {
+        document.getElementById('login-erro').innerText = 'Este e-mail já está cadastrado!';
+        return;
+      }
+
+      db.usuarios.push({ email, senha, nome });
+      db.categorias.push({ usuario: nome, nome: 'Geral', meta: 1000 });
+      salvarLocalmente();
+
+      mostrarToast('Cadastro realizado com sucesso! Faça login.');
+      window.alternarModoLogin('login');
+      document.getElementById('login-email').value = email;
+      document.getElementById('login-senha').value = '';
+    };
+
+    window.entrar = function() {
+      const email = document.getElementById('login-email').value.trim();
+      const senha = document.getElementById('login-senha').value.trim();
+      iniciarSistema();
+      const user = db.usuarios.find(u => u.email === email && u.senha === senha);
+      
+      if (user) {
+        usuarioAtual = user.nome;
+        document.getElementById('nome-usuario').innerText = usuarioAtual;
+        document.getElementById('tela-login').style.display = 'none';
+        document.getElementById('painel-principal').style.display = 'block';
+        document.getElementById('filtro-mes').value = mesAtualPadrao;
+        document.getElementById('desp-data').value = hojeISO;
+        renderizarPainel();
+        mostrarToast(`Bem-vindo, ${usuarioAtual}!`);
+      } else {
+        document.getElementById('login-erro').innerText = 'E-mail ou senha incorretos!';
+      }
+    };
+
+    window.sair = function() {
+      usuarioAtual = "";
+      document.getElementById('painel-principal').style.display = 'none';
+      document.getElementById('tela-login').style.display = 'block';
+    };
+
+    window.mudarAba = function(idAba, btn) {
+      iniciarSistema();
+      document.querySelectorAll('.secao').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(idAba).classList.add('active');
+      if (btn) btn.classList.add('active');
+      
+      if (idAba === 'aba-historico') renderizarHistoricoGeral();
+      if (idAba === 'aba-cartoes') renderizarTabelaCartoesConfig();
+      if (idAba === 'aba-metas') renderizarTabelaMetasConfig();
+    };
+
+    window.renderizarPainel = function() {
+      iniciarSistema();
+      const mesFiltro = document.getElementById('filtro-mes').value;
+      
+      let receitaObj = db.receitas.find(r => r.usuario === usuarioAtual && r.mes === mesFiltro);
+      let receitaMes = receitaObj ? Number(receitaObj.valor) : 0;
+      document.getElementById('rec-valor').value = receitaMes;
+
+      let despesasMes = [];
+      let compromissosFuturos = [];
+
+      db.despesas.forEach(d => {
+        let temPermissao = (d.quemGastou === usuarioAtual) || (d.titularCartao === usuarioAtual);
+        if (temPermissao) {
+          if (d.mesRef === mesFiltro) despesasMes.push(d);
+          if (d.totalParcelas > 1 && d.mesRef >= mesFiltro) compromissosFuturos.push(d);
+        }
+      });
+
+      let totalDespesas = despesasMes.reduce((acc, item) => acc + Number(item.valor), 0);
+      let saldo = receitaMes - totalDespesas;
+
+      document.getElementById('resumo-receita').innerText = `R$ ${receitaMes.toFixed(2)}`;
+      document.getElementById('resumo-despesa').innerText = `R$ ${totalDespesas.toFixed(2)}`;
+      document.getElementById('resumo-saldo').innerText = `R$ ${saldo.toFixed(2)}`;
+      document.getElementById('resumo-saldo').style.color = saldo >= 0 ? 'var(--success)' : 'var(--danger)';
+
+      let catsUser = db.categorias.filter(c => c.usuario === usuarioAtual);
+      document.getElementById('desp-cat').innerHTML = catsUser.length 
+        ? catsUser.map(c => `<option value="${c.nome}">${c.nome}</option>`).join('')
+        : `<option value="Geral">Geral</option>`;
+
+      document.getElementById('desp-pagamento').innerHTML = `<option value="Dinheiro/Pix|Nenhum">Dinheiro / Pix</option>` + 
+        db.cartoes.map(c => `<option value="${c.nome}|${c.titular}">${c.nome} (${c.titular})</option>`).join('');
+
+      document.getElementById('tabela-parcelas').innerHTML = compromissosFuturos.map(p => `<tr>
+        <td>${p.mesRef}</td>
+        <td><strong>${p.descricao}</strong></td>
+        <td>${p.parcelaAtual}/${p.totalParcelas}</td>
+        <td style="color:var(--danger); font-weight:600;">R$ ${Number(p.valor).toFixed(2)}</td>
+      </tr>`).join('');
+
+      renderizarMetasEGrafico(despesasMes, catsUser);
+      renderizarGraficoComparativo(mesFiltro, db.despesas.filter(d => (d.quemGastou === usuarioAtual || d.titularCartao === usuarioAtual)));
+    };
+
+    function renderizarMetasEGrafico(despesasMes, catsUser) {
+      let gastosPorCat = {};
+      despesasMes.forEach(d => {
+        gastosPorCat[d.categoria] = (gastosPorCat[d.categoria] || 0) + Number(d.valor);
+      });
+
+      const listaMetasEl = document.getElementById('lista-metas');
+      if (listaMetasEl) {
+        listaMetasEl.innerHTML = catsUser.map(c => {
+          let gasto = gastosPorCat[c.nome] || 0;
+          let pct = c.meta > 0 ? Math.min((gasto / c.meta) * 100, 100) : 0;
+          let cor = gasto > c.meta ? 'var(--danger)' : 'var(--primary)';
+          return `<div style="margin-bottom: 10px;">
+            <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:2px;">
+              <strong>${c.nome}</strong>
+              <span>R$ ${gasto.toFixed(2)} / Meta: R$ ${c.meta.toFixed(2)}</span>
+            </div>
+            <div class="progress-bg">
+              <div class="progress-fill" style="width:${pct}%; background:${cor}; height: 6px;"></div>
+            </div>
+          </div>`;
+        }).join('');
+      }
+
+      const canvasCat = document.getElementById('graficoCategorias');
+      if (canvasCat) {
+        const ctx = canvasCat.getContext('2d');
+        if (chartInstancia) chartInstancia.destroy();
+        chartInstancia = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: Object.keys(gastosPorCat),
+            datasets: [{
+              data: Object.values(gastosPorCat),
+              backgroundColor: ['#3B4D3B', '#1E3A5F', '#C5B8A5', '#6B8E23', '#4A6FA5', '#D97706'],
+              borderWidth: 1,
+              borderColor: '#FAF9F6'
+            }]
+          },
+          options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { boxWidth: 8, font: { size: 9 } } } }
+          }
+        });
+      }
+    }
+
+    function renderizarGraficoComparativo(mesAtualStr, todasDespesas) {
+      const canvasComp = document.getElementById('graficoComparativoMeses');
+      if (!canvasComp) return;
+
+      const [anoAtual, mesAtual] = mesAtualStr.split('-').map(Number);
+      let labelsMeses = [];
+      let valoresMeses = [];
+      let backgroundColors = [];
+
+      for (let i = -2; i <= 2; i++) {
+        let m = mesAtual + i;
+        let a = anoAtual;
+        while (m > 12) { m -= 12; a++; }
+        while (m < 1) { m += 12; a--; }
+
+        let mesStrRef = `${a}-${m < 10 ? '0' + m : m}`;
+        const dataRef = new Date(a, m - 1, 1);
+        labelsMeses.push(dataRef.toLocaleString('pt-BR', { month: 'short', year: '2-digit' }).replace('.', ''));
+
+        let totalDoMes = todasDespesas
+          .filter(d => d.mesRef === mesStrRef)
+          .reduce((acc, item) => acc + Number(item.valor), 0);
+        
+        valoresMeses.push(totalDoMes);
+        backgroundColors.push(mesStrRef === mesAtualStr ? '#1E3A5F' : '#C5B8A5');
+      }
+
+      const ctxComp = canvasComp.getContext('2d');
+      if (chartComparativoInstancia) chartComparativoInstancia.destroy();
+      
+      chartComparativoInstancia = new Chart(ctxComp, {
+        type: 'bar',
+        data: {
+          labels: labelsMeses,
+          datasets: [{ data: valoresMeses, backgroundColor: backgroundColors, borderRadius: 4 }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true }, x: { grid: { display: false } } }
+        }
+      });
+    }
+
+    window.verificarCartao = function() {
+      const val = document.getElementById('desp-pagamento').value;
+      const box = document.getElementById('box-parcelas');
+      if (box) box.style.display = val.startsWith('Dinheiro') ? 'none' : 'block';
+    };
+
+    window.registrarReceita = function() {
+      const valor = Number(document.getElementById('rec-valor').value);
+      const mes = document.getElementById('filtro-mes').value;
+      
+      let recIndex = db.receitas.findIndex(r => r.usuario === usuarioAtual && r.mes === mes);
+      if (recIndex >= 0) db.receitas[recIndex].valor = valor;
+      else db.receitas.push({ usuario: usuarioAtual, mes: mes, valor: valor });
+      
+      salvarLocalmente();
+      renderizarPainel();
+      mostrarToast("Receita salva!");
+    };
+
+    window.registrarDespesa = function() {
+      const desc = document.getElementById('desp-desc').value.trim();
+      const valorTotal = Number(document.getElementById('desp-valor').value);
+      const dataCompra = document.getElementById('desp-data').value || hojeISO;
+      const categoria = document.getElementById('desp-cat').value;
+      const pagInfo = document.getElementById('desp-pagamento').value.split('|');
+      const formaPagamento = pagInfo[0];
+      const titularCartao = pagInfo[1];
+      const totalParcelas = formaPagamento.startsWith('Dinheiro') ? 1 : Number(document.getElementById('desp-parcelas').value) || 1;
+
+      if (!desc || isNaN(valorTotal) || valorTotal <= 0) {
+        mostrarToast("Preencha descrição e valor válido!");
+        return;
+      }
+
+      let mesRefInicial = dataCompra.slice(0, 7);
+
+      if (!formaPagamento.startsWith('Dinheiro')) {
+        let cartaoObj = db.cartoes.find(c => c.nome === formaPagamento);
+        if (cartaoObj && cartaoObj.fechamento) {
+          let diaCompra = parseInt(dataCompra.slice(8, 10));
+          if (diaCompra >= Number(cartaoObj.fechamento)) {
+            let [ano, mes] = mesRefInicial.split('-').map(Number);
+            mes++;
+            if (mes > 12) { mes = 1; ano++; }
+            mesRefInicial = `${ano}-${mes < 10 ? '0' + mes : mes}`;
+          }
+        }
+      }
+
+      let valorParcela = valorTotal / totalParcelas;
+      let [anoP, mesP] = mesRefInicial.split('-').map(Number);
+
+      for (let p = 1; p <= totalParcelas; p++) {
+        let mesFormatado = `${anoP}-${mesP < 10 ? '0' + mesP : mesP}`;
+        db.despesas.push({
+          id: 'd_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+          quemGastou: usuarioAtual,
+          titularCartao: titularCartao,
+          descricao: desc,
+          categoria: categoria,
+          formaPagamento: formaPagamento,
+          valor: valorParcela.toFixed(2),
+          parcelaAtual: p,
+          totalParcelas: totalParcelas,
+          mesRef: mesFormatado
+        });
+        mesP++;
+        if (mesP > 12) { mesP = 1; anoP++; }
+      }
+
+      salvarLocalmente();
+      document.getElementById('desp-desc').value = '';
+      document.getElementById('desp-valor').value = '';
+      window.mudarAba('aba-visao', document.querySelectorAll('.tab-btn')[0]);
+      renderizarPainel();
+      mostrarToast("Gasto registrado!");
+    };
+
+    window.renderizarHistoricoGeral = function() {
+      iniciarSistema();
+      const termo = (document.getElementById('filtro-busca').value || "").toLowerCase();
+      const tbody = document.getElementById('tabela-historico-geral');
+      if (!tbody) return;
+      
+      let minhasDespesas = db.despesas.filter(d => d.quemGastou === usuarioAtual || d.titularCartao === usuarioAtual);
+      if (termo) minhasDespesas = minhasDespesas.filter(d => d.descricao.toLowerCase().includes(termo) || d.categoria.toLowerCase().includes(termo));
+
+      tbody.innerHTML = minhasDespesas.map((d) => `<tr>
+        <td>${d.mesRef}</td>
+        <td><strong>${d.descricao}</strong><br><small style="color:var(--text-muted);">${d.categoria} • ${d.formaPagamento}</small></td>
+        <td style="color:var(--danger); font-weight:600;">R$ ${Number(d.valor).toFixed(2)}</td>
+        <td>
+          <button onclick="window.abrirModalEdicao('${d.id}')" style="padding:2px 6px; font-size:10px; width:auto; min-height:auto; background:var(--accent-blue);">✏️</button>
+          <button onclick="window.excluirDespesa('${d.id}')" style="padding:2px 6px; font-size:10px; width:auto; min-height:auto; background:var(--danger);">🗑️</button>
+        </td>
+      </tr>`).join('');
+    };
+
+    window.excluirDespesa = function(id) {
+      if (confirm("Excluir este lançamento?")) {
+        db.despesas = db.despesas.filter(d => d.id !== id);
+        salvarLocalmente();
+        renderizarPainel();
+        renderizarHistoricoGeral();
+        mostrarToast("Excluído!");
+      }
+    };
+
+    window.abrirModalEdicao = function(id) {
+      const d = db.despesas.find(item => item.id === id);
+      if (!d) return;
+      document.getElementById('edit-desp-id').value = d.id;
+      document.getElementById('edit-desp-desc').value = d.descricao;
+      document.getElementById('edit-desp-valor').value = d.valor;
+
+      const selCat = document.getElementById('edit-desp-cat');
+      const catsUser = db.categorias.filter(c => c.usuario === usuarioAtual);
+      selCat.innerHTML = catsUser.map(c => `<option value="${c.nome}" ${c.nome === d.categoria ? 'selected' : ''}>${c.nome}</option>`).join('');
+      document.getElementById('modal-edicao').style.display = 'flex';
+    };
+
+    window.fecharModalEdicao = function() {
+      document.getElementById('modal-edicao').style.display = 'none';
+    };
+
+    window.salvarEdicaoDespesa = function() {
+      const id = document.getElementById('edit-desp-id').value;
+      const desc = document.getElementById('edit-desp-desc').value.trim();
+      const categoria = document.getElementById('edit-desp-cat').value;
+      const valor = Number(document.getElementById('edit-desp-valor').value);
+
+      if (!desc || isNaN(valor) || valor < 0) { mostrarToast("Dados inválidos!"); return; }
+
+      let d = db.despesas.find(item => item.id === id);
+      if (d) {
+        d.descricao = desc;
+        d.categoria = categoria;
+        d.valor = valor.toFixed(2);
+        salvarLocalmente();
+        fecharModalEdicao();
+        renderizarPainel();
+        renderizarHistoricoGeral();
+        mostrarToast("Atualizado!");
+      }
+    };
+
+    window.renderizarTabelaCartoesConfig = function() {
+      iniciarSistema();
+      const tbody = document.getElementById('tabela-cartoes-config');
+      if (!tbody) return;
+      tbody.innerHTML = db.cartoes.map((c, idx) => `<tr>
+        <td><strong>${c.nome}</strong></td>
+        <td>${c.titular}</td>
+        <td>F:${c.fechamento || '-'} / V:${c.vencimento || '-'}</td>
+        <td>
+          <button onclick="window.editarCartao(${idx})" style="padding:2px 6px; font-size:10px; width:auto; min-height:auto; background:var(--accent-blue);">✏️</button>
+          <button onclick="window.excluirCartao(${idx})" style="padding:2px 6px; font-size:10px; width:auto; min-height:auto; background:var(--danger);">🗑️</button>
+        </td>
+      </tr>`).join('');
+    };
+
+    window.registrarCartao = function() {
+      const nome = document.getElementById('cart-nome').value.trim();
+      const titular = document.getElementById('cart-titular').value;
+      const fechamento = document.getElementById('cart-fechamento').value;
+      const vencimento = document.getElementById('cart-vencimento').value;
+      const editIdx = Number(document.getElementById('cart-edit-idx').value);
+
+      if (!nome) { mostrarToast("Informe o nome!"); return; }
+
+      if (editIdx >= 0) {
+        db.cartoes[editIdx] = { nome, titular, fechamento, vencimento };
+        window.cancelarEdicaoCartao();
+      } else {
+        db.cartoes.push({ nome, titular, fechamento, vencimento });
+        document.getElementById('cart-nome').value = '';
+      }
+      salvarLocalmente();
+      renderizarTabelaCartoesConfig();
+      mostrarToast("Cartão salvo!");
+    };
+
+    window.editarCartao = function(idx) {
+      const c = db.cartoes[idx];
+      document.getElementById('cart-nome').value = c.nome;
+      document.getElementById('cart-titular').value = c.titular;
+      document.getElementById('cart-fechamento').value = c.fechamento || '';
+      document.getElementById('cart-vencimento').value = c.vencimento || '';
+      document.getElementById('cart-edit-idx').value = idx;
+      document.getElementById('titulo-form-cartao').innerText = "✏️ Editar Cartão";
+      document.getElementById('btn-salvar-cartao').innerText = "Salvar";
+      document.getElementById('btn-cancelar-cartao').style.display = 'block';
+    };
+
+    window.cancelarEdicaoCartao = function() {
+      document.getElementById('cart-nome').value = '';
+      document.getElementById('cart-fechamento').value = '';
+      document.getElementById('cart-vencimento').value = '';
+      document.getElementById('cart-edit-idx').value = '-1';
+      document.getElementById('titulo-form-cartao').innerText = "💳 Novo Cartão";
+      document.getElementById('btn-salvar-cartao').innerText = "Salvar Cartão";
+      document.getElementById('btn-cancelar-cartao').style.display = 'none';
+    };
+
+    window.excluirCartao = function(idx) {
+      if (confirm("Excluir cartão?")) {
+        db.cartoes.splice(idx, 1);
+        salvarLocalmente();
+        renderizarTabelaCartoesConfig();
+        mostrarToast("Removido!");
+      }
+    };
+
+    window.renderizarTabelaMetasConfig = function() {
+      iniciarSistema();
+      const tbody = document.getElementById('tabela-metas-config');
+      if (!tbody) return;
+      const catsUser = db.categorias.map((c, idx) => ({ ...c, originalIdx: idx })).filter(c => c.usuario === usuarioAtual);
+      
+      tbody.innerHTML = catsUser.map((c) => `<tr>
+        <td><strong>${c.nome}</strong></td>
+        <td>R$ ${Number(c.meta).toFixed(2)}</td>
+        <td>
+          <button onclick="window.editarCategoria(${c.originalIdx})" style="padding:2px 6px; font-size:10px; width:auto; min-height:auto; background:var(--accent-blue);">✏️</button>
+          <button onclick="window.excluirCategoria(${c.originalIdx})" style="padding:2px 6px; font-size:10px; width:auto; min-height:auto; background:var(--danger);">🗑️</button>
+        </td>
+      </tr>`).join('');
+    };
+
+    window.registrarCategoria = function() {
+      const nome = document.getElementById('cat-nome').value.trim();
+      const meta = Number(document.getElementById('cat-meta').value);
+      const editIdx = Number(document.getElementById('cat-edit-idx').value);
+
+      if (!nome || isNaN(meta)) { mostrarToast("Preencha nome e meta!"); return; }
+
+      if (editIdx >= 0) {
+        db.categorias[editIdx] = { usuario: usuarioAtual, nome, meta };
+        window.cancelarEdicaoCategoria();
+      } else {
+        db.categorias.push({ usuario: usuarioAtual, nome, meta });
+        document.getElementById('cat-nome').value = '';
+        document.getElementById('cat-meta').value = '';
+      }
+      salvarLocalmente();
+      renderizarTabelaMetasConfig();
+      mostrarToast("Categoria salva!");
+    };
+
+    window.editarCategoria = function(idx) {
+      const c = db.categorias[idx];
+      document.getElementById('cat-nome').value = c.nome;
+      document.getElementById('cat-meta').value = c.meta;
+      document.getElementById('cat-edit-idx').value = idx;
+      document.getElementById('titulo-form-cat').innerText = "✏️ Editar Categoria";
+      document.getElementById('btn-salvar-cat').innerText = "Salvar";
+      document.getElementById('btn-cancelar-cat').style.display = 'block';
+    };
+
+    window.cancelarEdicaoCategoria = function() {
+      document.getElementById('cat-nome').value = '';
+      document.getElementById('cat-meta').value = '';
+      document.getElementById('cat-edit-idx').value = '-1';
+      document.getElementById('titulo-form-cat').innerText = "🏷️ Nova Categoria";
+      document.getElementById('btn-salvar-cat').innerText = "Salvar Categoria";
+      document.getElementById('btn-cancelar-cat').style.display = 'none';
+    };
+
+    window.excluirCategoria = function(idx) {
+      if (confirm("Excluir categoria?")) {
+        db.categorias.splice(idx, 1);
+        salvarLocalmente();
+        renderizarTabelaMetasConfig();
+        mostrarToast("Removida!");
+      }
+    };
+
+    iniciarSistema();
+  </script>
+</body>
+</html>
