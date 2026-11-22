@@ -165,6 +165,11 @@
 
     <!-- ABA 1: VISÃO GERAL -->
     <div id="aba-visao" class="secao active">
+      <div class="card card-destaque-azul" id="card-acerto-cartoes" style="display:none;">
+        <h3>🤝 Acerto de Cartões Compartilhados (Mês)</h3>
+        <div id="conteudo-acerto-cartoes" style="display:flex; flex-direction:column; gap:6px; margin-top:6px;"></div>
+      </div>
+
       <div class="card">
         <h3>📊 Evolução Mensal</h3>
         <div style="height: 160px; position: relative;">
@@ -245,11 +250,44 @@
         <input type="text" id="edit-desp-desc">
         <label style="font-size:11px; color:#5C6670;">Categoria:</label>
         <select id="edit-desp-cat"></select>
-        <label style="font-size:11px; color:#5C6670;">Valor (R$):</label>
+        <label style="font-size:11px; color:#5C6670;">Valor da Parcela (R$):</label>
         <input type="number" id="edit-desp-valor" step="0.01">
+        
+        <div id="box-escopo-edicao" style="display:none; margin-top:6px;">
+          <label style="font-size:11px; color:var(--accent-blue); font-weight:700;">Aplicar alteração em:</label>
+          <select id="edit-desp-escopo">
+            <option value="atual">Somente esta parcela</option>
+            <option value="futuras">Desta parcela para frente</option>
+            <option value="todas">Todas as parcelas desta compra</option>
+          </select>
+        </div>
+
         <div style="display:flex; gap:8px; margin-top:10px;">
           <button onclick="window.salvarEdicaoDespesa()" style="background:var(--accent-blue); margin:0;">Salvar</button>
           <button onclick="window.fecharModalEdicao()" style="background:#5C6670; margin:0;">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL DE CONFIRMAÇÃO DE EXCLUSÃO -->
+    <div id="modal-exclusao" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:3000; align-items:center; justify-content:center; padding:12px;">
+      <div class="card" style="max-width:380px; width:100%; margin:auto;">
+        <h3 style="color: var(--danger); margin-top:0;">🗑️ Excluir Lançamento</h3>
+        <p id="texto-confirm-exclusao" style="font-size:13px; color:var(--text); margin-bottom:10px;">Deseja realmente excluir este lançamento?</p>
+        <input type="hidden" id="del-desp-id">
+        
+        <div id="box-escopo-exclusao" style="display:none; margin-bottom:10px;">
+          <label style="font-size:11px; color:var(--danger); font-weight:700;">Excluir quais parcelas?</label>
+          <select id="del-desp-escopo">
+            <option value="atual">Somente esta parcela</option>
+            <option value="futuras">Desta parcela para frente</option>
+            <option value="todas">Todas as parcelas desta compra</option>
+          </select>
+        </div>
+
+        <div style="display:flex; gap:8px; margin-top:10px;">
+          <button onclick="window.confirmarExclusaoDespesa()" style="background:var(--danger); margin:0;">Excluir</button>
+          <button onclick="window.fecharModalExclusao()" style="background:#5C6670; margin:0;">Cancelar</button>
         </div>
       </div>
     </div>
@@ -342,7 +380,11 @@
   </div>
 
   <script type="module">
-    const appId = 'financas-gustavo-isaias-mobile-v2-persist';
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'financas-gustavo-isaias-nuvem-v1';
     const hojeISO = new Date().toISOString().slice(0, 10);
     const mesAtualPadrao = hojeISO.slice(0, 7);
 
@@ -370,6 +412,75 @@
     let chartInstancia = null;
     let chartComparativoInstancia = null;
 
+    // Configuração de Sincronização em Nuvem (Firestore)
+    let firestoreDb = null;
+    let docCompartilhadoRef = null;
+    let authUser = null;
+
+    // =========================================================================
+    // CONFIGURAÇÃO DO FIREBASE ATIVADA COM SUCESSO
+    // =========================================================================
+    const MINHA_CONFIG_FIREBASE = {
+      apiKey: "AIzaSyBl58rxbyUegUs40ldV7Sff51jDPGjucQ",
+      authDomain: "painel-financeiro-c8281.firebaseapp.com",
+      projectId: "painel-financeiro-c8281",
+      storageBucket: "painel-financeiro-c8281.firebasestorage.app",
+      messagingSenderId: "354967674280",
+      appId: "1:354967674280:web:fdc171a0f066cd9e9b519d",
+      measurementId: "G-FWRNF8DW80"
+    };
+
+    async function inicializarNuvem() {
+      const statusEl = document.getElementById('status-sync');
+      try {
+        // Usa a configuração do ambiente ou a chave personalizada do seu GitHub Pages
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+          ? JSON.parse(__firebase_config) 
+          : (MINHA_CONFIG_FIREBASE.apiKey !== "COLE_SUA_API_KEY_AQUI" ? MINHA_CONFIG_FIREBASE : null);
+
+        if (firebaseConfig) {
+          const app = initializeApp(firebaseConfig);
+          const auth = getAuth(app);
+          firestoreDb = getFirestore(app);
+
+          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            await signInWithCustomToken(auth, __initial_auth_token);
+          } else {
+            await signInAnonymously(auth);
+          }
+          authUser = auth.currentUser;
+
+          if (authUser) {
+            docCompartilhadoRef = doc(firestoreDb, 'artifacts', appId, 'public', 'data', 'painel_compartilhado', 'dados_gerais');
+            const snapInicial = await getDoc(docCompartilhadoRef);
+            
+            if (!snapInicial.exists()) {
+              await setDoc(docCompartilhadoRef, db);
+            } else {
+              db = snapInicial.data();
+            }
+
+            // Escuta alterações em tempo real de qualquer celular
+            onSnapshot(docCompartilhadoRef, (docSnap) => {
+              if (docSnap.exists()) {
+                db = docSnap.data();
+                if (statusEl) statusEl.innerText = 'Sincronizado na Nuvem';
+                if (usuarioAtual) {
+                  renderizarPainel();
+                }
+              }
+            }, (err) => {
+              console.error("Erro na sincronização em tempo real:", err);
+              if (statusEl) statusEl.innerText = 'Modo Offline';
+            });
+          }
+        }
+      } catch (e) {
+        console.error("Falha ao conectar nuvem:", e);
+        if (statusEl) statusEl.innerText = 'Modo Local';
+      }
+    }
+
     function mostrarToast(mensagem) {
       const x = document.getElementById("toast");
       if (!x) return;
@@ -379,26 +490,20 @@
     }
 
     function iniciarSistema() {
-      try {
-        const dadosSalvos = localStorage.getItem(appId) || sessionStorage.getItem(appId);
-        if (dadosSalvos) {
-          db = JSON.parse(dadosSalvos);
-        } else {
-          localStorage.setItem(appId, JSON.stringify(dbPadrao));
-          sessionStorage.setItem(appId, JSON.stringify(dbPadrao));
-        }
-      } catch (e) {
-        console.error("Erro ao carregar armazenamento persistente:", e);
-      }
+      // Mantém compatibilidade caso a nuvem ainda esteja conectando
     }
 
-    function salvarLocalmente() {
-      try { 
-        const jsonStr = JSON.stringify(db);
-        localStorage.setItem(appId, jsonStr);
-        sessionStorage.setItem(appId, jsonStr);
-      } catch (e) { 
-        console.error("Erro ao salvar:", e); 
+    async function salvarLocalmente() {
+      const statusEl = document.getElementById('status-sync');
+      if (docCompartilhadoRef && authUser) {
+        try {
+          if (statusEl) statusEl.innerText = 'Salvando na nuvem...';
+          await setDoc(docCompartilhadoRef, db);
+          if (statusEl) statusEl.innerText = 'Sincronizado na Nuvem';
+        } catch (e) {
+          console.error("Erro ao salvar na nuvem:", e);
+          mostrarToast("Erro ao sincronizar na nuvem!");
+        }
       }
     }
 
@@ -426,8 +531,7 @@
       }
     };
 
-    window.cadastrarNovoUsuario = function() {
-      iniciarSistema();
+    window.cadastrarNovoUsuario = async function() {
       const nome = document.getElementById('cad-nome').value.trim();
       const email = document.getElementById('cad-email').value.trim();
       const senha = document.getElementById('cad-senha').value.trim();
@@ -445,7 +549,7 @@
 
       db.usuarios.push({ email, senha, nome });
       db.categorias.push({ usuario: nome, nome: 'Geral', meta: 1000 });
-      salvarLocalmente();
+      await salvarLocalmente();
 
       mostrarToast('Cadastro realizado com sucesso! Faça login.');
       window.alternarModoLogin('login');
@@ -456,7 +560,6 @@
     window.entrar = function() {
       const email = document.getElementById('login-email').value.trim();
       const senha = document.getElementById('login-senha').value.trim();
-      iniciarSistema();
       const user = db.usuarios.find(u => u.email === email && u.senha === senha);
       
       if (user) {
@@ -505,8 +608,17 @@
       db.despesas.forEach(d => {
         let temPermissao = (d.quemGastou === usuarioAtual) || (d.titularCartao === usuarioAtual);
         if (temPermissao) {
-          if (d.mesRef === mesFiltro) despesasMes.push(d);
-          if (d.totalParcelas > 1 && d.mesRef >= mesFiltro) compromissosFuturos.push(d);
+          // Regra: Se o usuário logado é apenas o titular do cartão (e não quem gastou),
+          // o gasto entra numa categoria separada "Compras [Nome]" para não misturar nas metas pessoais dele.
+          const isCompraTerceiro = (d.titularCartao === usuarioAtual && d.quemGastou !== usuarioAtual);
+          const itemProcessado = {
+            ...d,
+            categoriaExibicao: isCompraTerceiro ? `Compras ${d.quemGastou}` : d.categoria,
+            isCompraTerceiro: isCompraTerceiro
+          };
+
+          if (d.mesRef === mesFiltro) despesasMes.push(itemProcessado);
+          if (d.totalParcelas > 1 && d.mesRef >= mesFiltro) compromissosFuturos.push(itemProcessado);
         }
       });
 
@@ -526,21 +638,73 @@
       document.getElementById('desp-pagamento').innerHTML = `<option value="Dinheiro/Pix|Nenhum">Dinheiro / Pix</option>` + 
         db.cartoes.map(c => `<option value="${c.nome}|${c.titular}">${c.nome} (${c.titular})</option>`).join('');
 
-      document.getElementById('tabela-parcelas').innerHTML = compromissosFuturos.map(p => `<tr>
-        <td>${p.mesRef}</td>
-        <td><strong>${p.descricao}</strong></td>
-        <td>${p.parcelaAtual}/${p.totalParcelas}</td>
-        <td style="color:var(--danger); font-weight:600;">R$ ${Number(p.valor).toFixed(2)}</td>
-      </tr>`).join('');
+      document.getElementById('tabela-parcelas').innerHTML = compromissosFuturos.map(p => {
+        const badgeTerceiro = p.isCompraTerceiro ? `<br><span class="badge-compartilhado">🤝 Compra de ${p.quemGastou}</span>` : '';
+        return `<tr>
+          <td>${p.mesRef}</td>
+          <td><strong>${p.descricao}</strong>${badgeTerceiro}</td>
+          <td>${p.parcelaAtual}/${p.totalParcelas}</td>
+          <td style="color:var(--danger); font-weight:600;">R$ ${Number(p.valor).toFixed(2)}</td>
+        </tr>`;
+      }).join('');
 
       renderizarMetasEGrafico(despesasMes, catsUser);
+      renderizarAcertoCartoes(despesasMes);
       renderizarGraficoComparativo(mesFiltro, db.despesas.filter(d => (d.quemGastou === usuarioAtual || d.titularCartao === usuarioAtual)));
+      
+      // Atualiza também o extrato sempre que o mês mudar
+      renderizarHistoricoGeral();
     };
+
+    function renderizarAcertoCartoes(despesasMes) {
+      const cardAcerto = document.getElementById('card-acerto-cartoes');
+      const conteudoAcerto = document.getElementById('conteudo-acerto-cartoes');
+      if (!cardAcerto || !conteudoAcerto) return;
+
+      let aReceberPorPessoa = {};
+      let aPagarPorTitular = {};
+
+      despesasMes.forEach(d => {
+        const valor = Number(d.valor);
+        // Outra pessoa usou o MEU cartão -> Ela deve me pagar
+        if (d.titularCartao === usuarioAtual && d.quemGastou !== usuarioAtual) {
+          aReceberPorPessoa[d.quemGastou] = (aReceberPorPessoa[d.quemGastou] || 0) + valor;
+        }
+        // Eu usei o cartão de OUTRA pessoa -> Eu devo pagar ao titular
+        if (d.quemGastou === usuarioAtual && d.titularCartao && d.titularCartao !== 'Nenhum' && d.titularCartao !== usuarioAtual) {
+          aPagarPorTitular[d.titularCartao] = (aPagarPorTitular[d.titularCartao] || 0) + valor;
+        }
+      });
+
+      let htmlAcerto = '';
+
+      for (const [pessoa, total] of Object.entries(aReceberPorPessoa)) {
+        htmlAcerto += `<div style="display:flex; justify-content:space-between; align-items:center; background:#EBF5EE; padding:8px 10px; border-radius:8px; border:1px solid #C2E0CB;">
+          <span style="font-size:12px; color:var(--text);">📥 <strong>${pessoa}</strong> deve te pagar:</span>
+          <strong style="font-size:13px; color:var(--success);">R$ ${total.toFixed(2)}</strong>
+        </div>`;
+      }
+
+      for (const [titular, total] of Object.entries(aPagarPorTitular)) {
+        htmlAcerto += `<div style="display:flex; justify-content:space-between; align-items:center; background:#FDECEC; padding:8px 10px; border-radius:8px; border:1px solid #F5C2C2;">
+          <span style="font-size:12px; color:var(--text);">📤 Você deve pagar <strong>${titular}</strong>:</span>
+          <strong style="font-size:13px; color:var(--danger);">R$ ${total.toFixed(2)}</strong>
+        </div>`;
+      }
+
+      if (htmlAcerto) {
+        conteudoAcerto.innerHTML = htmlAcerto;
+        cardAcerto.style.display = 'block';
+      } else {
+        cardAcerto.style.display = 'none';
+      }
+    }
 
     function renderizarMetasEGrafico(despesasMes, catsUser) {
       let gastosPorCat = {};
       despesasMes.forEach(d => {
-        gastosPorCat[d.categoria] = (gastosPorCat[d.categoria] || 0) + Number(d.valor);
+        const catKey = d.categoriaExibicao || d.categoria;
+        gastosPorCat[catKey] = (gastosPorCat[catKey] || 0) + Number(d.valor);
       });
 
       const listaMetasEl = document.getElementById('lista-metas');
@@ -681,11 +845,13 @@
 
       let valorParcela = valorTotal / totalParcelas;
       let [anoP, mesP] = mesRefInicial.split('-').map(Number);
+      let compraGroupId = 'grp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
 
       for (let p = 1; p <= totalParcelas; p++) {
         let mesFormatado = `${anoP}-${mesP < 10 ? '0' + mesP : mesP}`;
         db.despesas.push({
-          id: 'd_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+          id: 'd_' + Date.now() + '_' + p + '_' + Math.random().toString(36).substr(2, 5),
+          compraId: compraGroupId,
           quemGastou: usuarioAtual,
           titularCartao: titularCartao,
           descricao: desc,
@@ -708,34 +874,108 @@
       mostrarToast("Gasto registrado!");
     };
 
+    // Função auxiliar para identificar parcelas pertencentes à mesma compra (inclusive lançamentos antigos sem compraId)
+    function pertenceMesmaCompra(itemA, itemB) {
+      if (itemA.compraId && itemB.compraId) {
+        return itemA.compraId === itemB.compraId;
+      }
+      return itemA.descricao === itemB.descricao &&
+             itemA.totalParcelas === itemB.totalParcelas &&
+             itemA.formaPagamento === itemB.formaPagamento &&
+             itemA.quemGastou === itemB.quemGastou &&
+             itemA.totalParcelas > 1;
+    }
+
     window.renderizarHistoricoGeral = function() {
       iniciarSistema();
+      const mesFiltro = document.getElementById('filtro-mes').value;
       const termo = (document.getElementById('filtro-busca').value || "").toLowerCase();
       const tbody = document.getElementById('tabela-historico-geral');
       if (!tbody) return;
       
-      let minhasDespesas = db.despesas.filter(d => d.quemGastou === usuarioAtual || d.titularCartao === usuarioAtual);
-      if (termo) minhasDespesas = minhasDespesas.filter(d => d.descricao.toLowerCase().includes(termo) || d.categoria.toLowerCase().includes(termo));
+      // Filtra apenas despesas do usuário/cartão E estritamente do mês selecionado no topo
+      let minhasDespesas = db.despesas.filter(d => 
+        (d.quemGastou === usuarioAtual || d.titularCartao === usuarioAtual) &&
+        d.mesRef === mesFiltro
+      ).map(d => {
+        const isCompraTerceiro = (d.titularCartao === usuarioAtual && d.quemGastou !== usuarioAtual);
+        return {
+          ...d,
+          categoriaExibicao: isCompraTerceiro ? `Compras ${d.quemGastou}` : d.categoria,
+          isCompraTerceiro: isCompraTerceiro
+        };
+      });
+      
+      if (termo) {
+        minhasDespesas = minhasDespesas.filter(d => 
+          d.descricao.toLowerCase().includes(termo) || 
+          d.categoriaExibicao.toLowerCase().includes(termo)
+        );
+      }
 
-      tbody.innerHTML = minhasDespesas.map((d) => `<tr>
-        <td>${d.mesRef}</td>
-        <td><strong>${d.descricao}</strong><br><small style="color:var(--text-muted);">${d.categoria} • ${d.formaPagamento}</small></td>
-        <td style="color:var(--danger); font-weight:600;">R$ ${Number(d.valor).toFixed(2)}</td>
-        <td>
-          <button onclick="window.abrirModalEdicao('${d.id}')" style="padding:2px 6px; font-size:10px; width:auto; min-height:auto; background:var(--accent-blue);">✏️</button>
-          <button onclick="window.excluirDespesa('${d.id}')" style="padding:2px 6px; font-size:10px; width:auto; min-height:auto; background:var(--danger);">🗑️</button>
-        </td>
-      </tr>`).join('');
+      if (minhasDespesas.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:16px;">Nenhum lançamento encontrado neste mês.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = minhasDespesas.map((d) => {
+        const textoParcela = d.totalParcelas > 1 ? ` <span style="color:var(--accent-blue); font-weight:600;">(${d.parcelaAtual}/${d.totalParcelas})</span>` : '';
+        const badgeTerceiro = d.isCompraTerceiro ? `<br><span class="badge-compartilhado">🤝 Compra de ${d.quemGastou}</span>` : '';
+        return `<tr>
+          <td>${d.mesRef}</td>
+          <td><strong>${d.descricao}</strong>${textoParcela}<br><small style="color:var(--text-muted);">${d.categoriaExibicao} • ${d.formaPagamento}</small>${badgeTerceiro}</td>
+          <td style="color:var(--danger); font-weight:600;">R$ ${Number(d.valor).toFixed(2)}</td>
+          <td>
+            <button onclick="window.abrirModalEdicao('${d.id}')" style="padding:4px 8px; font-size:11px; width:auto; min-height:auto; background:var(--accent-blue); margin-bottom:2px;">✏️</button>
+            <button onclick="window.excluirDespesa('${d.id}')" style="padding:4px 8px; font-size:11px; width:auto; min-height:auto; background:var(--danger);">🗑️</button>
+          </td>
+        </tr>`;
+      }).join('');
     };
 
     window.excluirDespesa = function(id) {
-      if (confirm("Excluir este lançamento?")) {
-        db.despesas = db.despesas.filter(d => d.id !== id);
-        salvarLocalmente();
-        renderizarPainel();
-        renderizarHistoricoGeral();
-        mostrarToast("Excluído!");
+      const d = db.despesas.find(item => item.id === id);
+      if (!d) return;
+      
+      document.getElementById('del-desp-id').value = d.id;
+      const boxEscopo = document.getElementById('box-escopo-exclusao');
+      const textoConfirm = document.getElementById('texto-confirm-exclusao');
+      
+      if (d.totalParcelas > 1) {
+        boxEscopo.style.display = 'block';
+        document.getElementById('del-desp-escopo').value = 'atual';
+        textoConfirm.innerText = `Esta é a parcela ${d.parcelaAtual}/${d.totalParcelas} de "${d.descricao}". Como deseja excluir?`;
+      } else {
+        boxEscopo.style.display = 'none';
+        textoConfirm.innerText = `Deseja realmente excluir "${d.descricao}"?`;
       }
+      
+      document.getElementById('modal-exclusao').style.display = 'flex';
+    };
+
+    window.fecharModalExclusao = function() {
+      document.getElementById('modal-exclusao').style.display = 'none';
+    };
+
+    window.confirmarExclusaoDespesa = function() {
+      const id = document.getElementById('del-desp-id').value;
+      const alvo = db.despesas.find(item => item.id === id);
+      if (!alvo) return;
+
+      const escopo = alvo.totalParcelas > 1 ? document.getElementById('del-desp-escopo').value : 'atual';
+
+      if (escopo === 'atual') {
+        db.despesas = db.despesas.filter(d => d.id !== id);
+      } else if (escopo === 'futuras') {
+        db.despesas = db.despesas.filter(d => !(pertenceMesmaCompra(d, alvo) && d.parcelaAtual >= alvo.parcelaAtual));
+      } else if (escopo === 'todas') {
+        db.despesas = db.despesas.filter(d => !pertenceMesmaCompra(d, alvo));
+      }
+
+      salvarLocalmente();
+      fecharModalExclusao();
+      renderizarPainel();
+      mostrarToast("Lançamento(s) excluído(s)!");
     };
 
     window.abrirModalEdicao = function(id) {
@@ -744,6 +984,14 @@
       document.getElementById('edit-desp-id').value = d.id;
       document.getElementById('edit-desp-desc').value = d.descricao;
       document.getElementById('edit-desp-valor').value = d.valor;
+
+      const boxEscopo = document.getElementById('box-escopo-edicao');
+      if (d.totalParcelas > 1) {
+        boxEscopo.style.display = 'block';
+        document.getElementById('edit-desp-escopo').value = 'atual';
+      } else {
+        boxEscopo.style.display = 'none';
+      }
 
       const selCat = document.getElementById('edit-desp-cat');
       const catsUser = db.categorias.filter(c => c.usuario === usuarioAtual);
@@ -763,16 +1011,31 @@
 
       if (!desc || isNaN(valor) || valor < 0) { mostrarToast("Dados inválidos!"); return; }
 
-      let d = db.despesas.find(item => item.id === id);
-      if (d) {
-        d.descricao = desc;
-        d.categoria = categoria;
-        d.valor = valor.toFixed(2);
+      const alvo = db.despesas.find(item => item.id === id);
+      if (alvo) {
+        const escopo = alvo.totalParcelas > 1 ? document.getElementById('edit-desp-escopo').value : 'atual';
+
+        db.despesas.forEach(item => {
+          let deveAtualizar = false;
+          if (escopo === 'atual' && item.id === alvo.id) {
+            deveAtualizar = true;
+          } else if (escopo === 'futuras' && pertenceMesmaCompra(item, alvo) && item.parcelaAtual >= alvo.parcelaAtual) {
+            deveAtualizar = true;
+          } else if (escopo === 'todas' && pertenceMesmaCompra(item, alvo)) {
+            deveAtualizar = true;
+          }
+
+          if (deveAtualizar) {
+            item.descricao = desc;
+            item.categoria = categoria;
+            item.valor = valor.toFixed(2);
+          }
+        });
+
         salvarLocalmente();
         fecharModalEdicao();
         renderizarPainel();
-        renderizarHistoricoGeral();
-        mostrarToast("Atualizado!");
+        mostrarToast("Atualizado com sucesso!");
       }
     };
 
@@ -835,12 +1098,10 @@
     };
 
     window.excluirCartao = function(idx) {
-      if (confirm("Excluir cartão?")) {
-        db.cartoes.splice(idx, 1);
-        salvarLocalmente();
-        renderizarTabelaCartoesConfig();
-        mostrarToast("Removido!");
-      }
+      db.cartoes.splice(idx, 1);
+      salvarLocalmente();
+      renderizarTabelaCartoesConfig();
+      mostrarToast("Cartão removido!");
     };
 
     window.renderizarTabelaMetasConfig = function() {
@@ -899,15 +1160,13 @@
     };
 
     window.excluirCategoria = function(idx) {
-      if (confirm("Excluir categoria?")) {
-        db.categorias.splice(idx, 1);
-        salvarLocalmente();
-        renderizarTabelaMetasConfig();
-        mostrarToast("Removida!");
-      }
+      db.categorias.splice(idx, 1);
+      salvarLocalmente();
+      renderizarTabelaMetasConfig();
+      mostrarToast("Categoria removida!");
     };
 
-    iniciarSistema();
+    inicializarNuvem();
   </script>
 </body>
 </html>
