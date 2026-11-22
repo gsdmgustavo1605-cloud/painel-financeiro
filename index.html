@@ -437,49 +437,53 @@
       try {
         const firebaseConfig = typeof __firebase_config !== 'undefined' 
           ? JSON.parse(__firebase_config) 
-          : (MINHA_CONFIG_FIREBASE.apiKey !== "COLE_SUA_API_KEY_AQUI" ? MINHA_CONFIG_FIREBASE : null);
+          : MINHA_CONFIG_FIREBASE;
 
-        if (firebaseConfig) {
-          const app = initializeApp(firebaseConfig);
-          const auth = getAuth(app);
-          firestoreDb = getFirestore(app);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        firestoreDb = getFirestore(app);
 
-          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-            await signInWithCustomToken(auth, __initial_auth_token);
-          } else {
-            await signInAnonymously(auth);
-          }
-          authUser = auth.currentUser;
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+        authUser = auth.currentUser;
 
-          if (authUser) {
-            docCompartilhadoRef = doc(firestoreDb, 'artifacts', appId, 'public', 'data', 'painel_compartilhado', 'dados_gerais');
+        if (authUser) {
+          docCompartilhadoRef = doc(firestoreDb, 'artifacts', appId, 'public', 'data', 'painel_compartilhado', 'dados_gerais');
+          
+          try {
             const snapInicial = await getDoc(docCompartilhadoRef);
-            
             if (!snapInicial.exists()) {
               await setDoc(docCompartilhadoRef, db);
             } else {
               db = snapInicial.data();
               salvarBackupLocal();
             }
-
-            onSnapshot(docCompartilhadoRef, (docSnap) => {
-              if (docSnap.exists()) {
-                db = docSnap.data();
-                salvarBackupLocal();
-                if (statusEl) statusEl.innerText = 'Sincronizado na Nuvem';
-                if (usuarioAtual) {
-                  renderizarPainel();
-                }
-              }
-            }, (err) => {
-              console.error("Erro na sincronização em tempo real:", err);
-              if (statusEl) statusEl.innerText = 'Modo Local (Seguro)';
-            });
+          } catch(errDoc) {
+            console.warn("Aviso ao ler documento inicial:", errDoc);
           }
+
+          onSnapshot(docCompartilhadoRef, (docSnap) => {
+            if (docSnap.exists()) {
+              db = docSnap.data();
+              salvarBackupLocal();
+              if (statusEl) statusEl.innerText = 'Sincronizado na Nuvem';
+              if (usuarioAtual) {
+                renderizarPainel();
+              }
+            }
+          }, (err) => {
+            console.error("Erro na sincronização:", err);
+            if (statusEl) statusEl.innerText = 'Modo Local (Seguro)';
+          });
+
+          if (statusEl) statusEl.innerText = 'Sincronizado na Nuvem';
         }
       } catch (e) {
         console.error("Falha ao conectar nuvem:", e);
-        if (statusEl) statusEl.innerText = 'Modo Local (Erro Nuvem)';
+        if (statusEl) statusEl.innerText = 'Modo Local';
       }
     }
 
